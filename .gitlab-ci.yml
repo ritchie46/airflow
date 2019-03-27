@@ -22,19 +22,19 @@ stages:
   - plan
   - apply
 
-#docker-build:
-#  tags:
-#    - docker-builder-t3-medium
-#  image: docker:latest
-#  stage: docker-build
-#  services:
-#    - docker:dind
-#  before_script:
-#    - export NO_PROXY="localhost, docker"
-#    - apk add --no-cache curl jq python py-pip
-#    - pip install awscli
-#  script:
-#    - ./build_and_push.sh
+docker-build:
+  tags:
+    - docker-builder-t3-medium
+  image: docker:latest
+  stage: docker-build
+  services:
+    - docker:dind
+  before_script:
+    - export NO_PROXY="localhost, docker"
+    - apk add --no-cache curl jq python py-pip
+    - pip install awscli
+  script:
+    - ./build_and_push.sh
 
 validate:
   stage: validate

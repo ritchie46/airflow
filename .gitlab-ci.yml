@@ -12,7 +12,7 @@ before_script:
   - cd terraform
   - terraform init
   - mkdir -p ~/.ssh/aws-enx
-  - echo ${SSH_KEY} > ~/.ssh/aws-enx/enx-ec2.pem
+  - echo "${SSH_KEY}" > ~/.ssh/aws-enx/enx-ec2.pem
   - mkdir ~/.aws
   - echo "${AWS_CREDENTIALS}" > ~/.aws/credentials
 
@@ -58,4 +58,4 @@ apply:
   dependencies:
     - plan
     - docker-build
-  when: manual
+#  when: manual

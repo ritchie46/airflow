@@ -49,7 +49,7 @@ plan:
     - validate
   artifacts:
     paths:
-      - planfile
+      - terraform/planfile
 
 apply:
   stage: apply

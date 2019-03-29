@@ -1,61 +1,61 @@
 # note add env AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
-image:
-  name: hashicorp/terraform:light
-  entrypoint:
-    - '/usr/bin/env'
-    - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+#image:
+#  name: hashicorp/terraform:light
+#  entrypoint:
+#    - '/usr/bin/env'
+#    - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+#
+#before_script:
+#  - rm -rf terraform/.terraform
+#  - terraform --version
+#  - mkdir -p ./creds
+#  - cd terraform
+#  - terraform init
+#  - mkdir -p ~/.ssh/aws-enx
+#  - echo "${SSH_KEY}" > ~/.ssh/aws-enx/enx-ec2.pem
+#  - mkdir ~/.aws
+#  - echo "${AWS_CREDENTIALS}" > ~/.aws/credentials
+#
+#stages:
+#  - docker-build
+#  - validate
+#  - plan
+#  - apply
+#
+#docker-build:
+#  tags:
+#    - docker-builder-t3-medium
+#  image: docker:latest
+#  stage: docker-build
+#  services:
+#    - docker:dind
+#  before_script:
+#    - export NO_PROXY="localhost, docker"
+#    - apk add --no-cache curl jq python py-pip
+#    - pip install awscli
+#  script:
+#    - ./build_and_push.sh
+#
+#validate:
+#  stage: validate
+#  script:
+#    - terraform validate
+#
+#plan:
+#  stage: plan
+#  script:
+#    - terraform plan -out "planfile"
+#  dependencies:
+#    - validate
+#  artifacts:
+#    paths:
+#      - terraform/planfile
 
-before_script:
-  - rm -rf terraform/.terraform
-  - terraform --version
-  - mkdir -p ./creds
-  - cd terraform
-  - terraform init
-  - mkdir -p ~/.ssh/aws-enx
-  - echo "${SSH_KEY}" > ~/.ssh/aws-enx/enx-ec2.pem
-  - mkdir ~/.aws
-  - echo "${AWS_CREDENTIALS}" > ~/.aws/credentials
-
-stages:
-  - docker-build
-  - validate
-  - plan
-  - apply
-
-docker-build:
-  tags:
-    - docker-builder-t3-medium
-  image: docker:latest
-  stage: docker-build
-  services:
-    - docker:dind
-  before_script:
-    - export NO_PROXY="localhost, docker"
-    - apk add --no-cache curl jq python py-pip
-    - pip install awscli
-  script:
-    - ./build_and_push.sh
-
-validate:
-  stage: validate
-  script:
-    - terraform validate
-
-plan:
-  stage: plan
-  script:
-    - terraform plan -out "planfile"
-  dependencies:
-    - validate
-  artifacts:
-    paths:
-      - terraform/planfile
-
-apply:
-  stage: apply
-  script:
-    - terraform apply -input=false "planfile"
-  dependencies:
-    - plan
-    - docker-build
+#apply:
+#  stage: apply
+#  script:
+#    - terraform apply -input=false "planfile"
+#  dependencies:
+#    - plan
+#    - docker-build
 #  when: manual

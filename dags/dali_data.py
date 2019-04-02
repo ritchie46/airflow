@@ -5,14 +5,50 @@ from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.operators.emr_terminate_job_flow_operator import EmrTerminateJobFlowOperator
 
 # custom operator plugins
-from airflow.operators import EmrStepSensor, UploadFile, FindSubnet
+from airflow.operators import EmrStepSensor, UploadFiles, FindSubnet
 
-
+DAG_NAME = 'dali-data-ETL'
 BUCKET = 'enx-ds-airflow'
 SPARK_JOB_KEY = 'my-sparkjob.py'
 S3_URI = f's3://{BUCKET}/{SPARK_JOB_KEY}'
-CLUSTER_NAME = f"airflow-cluster-{str(datetime.now()).replace(' ','_')}"
+CLUSTER_NAME = f"airflow-cluster-{str(datetime.now()).replace(' ', '_')}"
 LOG_URI = f's3://{BUCKET}/logs/{CLUSTER_NAME}'
+
+spark_steps = [{
+    'name': 'process-data',
+    'spark-job-key': f'{DAG_NAME}_process_data.py',
+    'local-file': 'tasks/spark/dali-process-data.py'
+}, {
+    'name': 'process-data',
+    'spark-job-key': f'{DAG_NAME}_check_data_completeness.py',
+    'local-file': 'tasks/spark/dali_check_data_completeness.py'
+}]
+
+aws_emr_steps = []
+local_files = []
+for step in spark_steps:
+    s3_uri = f"s3://{BUCKET}/{step['spark-job-key']}"
+    local_files.append(step['local-file'])
+
+    aws_emr_steps.append(
+        {
+            'Name': 'setup - copy files',
+            'ActionOnFailure': 'TERMINATE_JOB_FLOW',
+            'HadoopJarStep': {
+                'Jar': 'command-runner.jar',
+                'Args': ['aws', 's3', 'cp', s3_uri, '/home/hadoop/']
+            }
+        })
+    aws_emr_steps.append(
+        {
+            'Name': 'Run Spark',
+            'ActionOnFailure': 'TERMINATE_JOB_FLOW',
+            'HadoopJarStep': {
+                'Jar': 'command-runner.jar',
+                'Args': ['spark-submit', f"/home/hadoop/{step['spark-job-key']}"]
+            }
+        }
+    )
 
 DEFAULT_ARGS = {
     'owner': 'ritchie',
@@ -22,11 +58,7 @@ DEFAULT_ARGS = {
     'email_on_retry': False,
 }
 
-dag = DAG(
-    'emr_dag_example',
-    default_args=DEFAULT_ARGS,
-    schedule_interval='@once'
-)
+dag = DAG(DAG_NAME, schedule_interval='@once', default_args=DEFAULT_ARGS)
 
 find_subnet = FindSubnet(
     task_id='find_subnet',
@@ -49,7 +81,30 @@ cluster_creator = EmrCreateJobFlowOperator(
             'TerminationProtected': False,
             'KeepJobFlowAliveWhenNoSteps': True,
             'Ec2SubnetId': "{{ task_instance.xcom_pull('find_subnet', key='return_value') }}"
-        }
+        },
+        'Configurations': [
+            {
+                "Classification": "spark-env",
+                "Configurations": [
+                    {
+                        "Classification": "export",
+                        "Properties": {
+                            "PYSPARK_PYTHON": "/usr/bin/python3"
+                        }
+                    }
+                ]
+            }
+        ],
+        'BootstrapActions': [
+            {
+                'Name': 'python-dependencies',
+                'ScriptBootstrapAction': {
+                    'Path': 's3://enx-ds-airflow/bootstrap_emr.sh',
+                    'Args': ['']
+                }
+            },
+        ],
+
     },
     dag=dag
 )
@@ -57,26 +112,7 @@ cluster_creator = EmrCreateJobFlowOperator(
 step_adder = EmrAddStepsOperator(
     task_id='add_emr_steps',
     job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
-    steps=[
-        {
-            'Name': 'setup - copy files',
-            'ActionOnFailure': 'CANCEL_AND_WAIT',
-            'HadoopJarStep': {
-                'Jar': 'command-runner.jar',
-                'Args': ['aws', 's3', 'cp', S3_URI, '/home/hadoop/']
-            }
-        },
-
-        {
-            'Name': 'Run Spark',
-            'ActionOnFailure': 'CANCEL_AND_WAIT',
-            'HadoopJarStep': {
-                'Jar': 'command-runner.jar',
-                'Args': ['spark-submit', f'/home/hadoop/{SPARK_JOB_KEY}']
-            }
-        }
-
-    ],
+    steps=aws_emr_steps,
     dag=dag
 )
 
@@ -93,14 +129,14 @@ cluster_remover = EmrTerminateJobFlowOperator(
     dag=dag
 )
 
-upload_script = UploadFile(
-    task_id='upload_script',
-    local_file='tasks/spark/test.py',
+upload_scripts = UploadFiles(
+    task_id='upload_scripts',
+    local_files=local_files,
     bucket=BUCKET,
-    key=SPARK_JOB_KEY,
+    keys=[step['spark-job-key'] for step in spark_steps],
     replace=True,
     dag=dag
 )
 
 find_subnet >> cluster_creator >> step_adder >> step_checker >> cluster_remover
-upload_script >> step_adder
+upload_scripts >> step_adder

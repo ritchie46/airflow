@@ -5,7 +5,7 @@ from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.operators.emr_terminate_job_flow_operator import EmrTerminateJobFlowOperator
 
 # custom operator plugins
-from airflow.operators import EmrStepSensor, UploadFile, FindSubnet
+from airflow.operators import EmrStepSensor, UploadFiles, FindSubnet
 
 
 BUCKET = 'enx-ds-airflow'
@@ -93,11 +93,11 @@ cluster_remover = EmrTerminateJobFlowOperator(
     dag=dag
 )
 
-upload_script = UploadFile(
+upload_script = UploadFiles(
     task_id='upload_script',
-    local_file='tasks/spark/test.py',
+    local_files=['tasks/spark/test.py'],
     bucket=BUCKET,
-    key=SPARK_JOB_KEY,
+    keys=[SPARK_JOB_KEY],
     replace=True,
     dag=dag
 )

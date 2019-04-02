@@ -9,3 +9,5 @@ fi
 
 export AIRFLOW_USERNAME=dev
 export AIRFLOW_PASSWORD=dev
+
+aws s3 cp utils/bootstrap_emr.sh s3://enx-ds-airflow/bootstrap_emr.sh

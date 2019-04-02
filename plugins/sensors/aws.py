@@ -53,15 +53,16 @@ class FindSubnet(BaseOperator):
         return client.describe_subnets()['Subnets'][self.subnet_index]['SubnetId']
 
 
-class UploadFile(BaseOperator):
+class UploadFiles(BaseOperator):
 
     @apply_defaults
-    def __init__(self, local_file, bucket, key, replace=True, *args, **kwargs):
+    def __init__(self, local_files, bucket, keys, replace=True, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.bucket = bucket
-        self.key = key
+        self.keys = keys
         self.replace = replace
-        self.local_file = local_file
+        self.local_files = local_files
 
     def execute(self, context):
-        S3Hook().load_file(self.local_file, self.key, self.bucket, self.replace)
+        for key, fn in zip(self.keys, self.local_files):
+            S3Hook().load_file(fn, key, self.bucket, self.replace)

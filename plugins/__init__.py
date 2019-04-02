@@ -9,6 +9,6 @@ class AWSPlugin(AirflowPlugin):
     ]
     operators = [
         aws.FindSubnet,
-        aws.UploadFile
+        aws.UploadFiles
     ]
 

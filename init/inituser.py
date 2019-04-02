@@ -8,9 +8,13 @@ user.username = os.environ['AIRFLOW_USERNAME']
 print('Made user', user.username)
 
 user.email = 'new_user_email@example.com'
-user.password = os.environ['AIRFLOW_PASSWORD']
-session = settings.Session()
-session.add(user)
-session.commit()
-session.close()
+
+try:
+    user.password = os.environ['AIRFLOW_PASSWORD']
+    session = settings.Session()
+    session.add(user)
+    session.commit()
+    session.close()
+except Exception:
+    pass
 exit()

@@ -33,17 +33,17 @@
 #    - export NO_PROXY="localhost, docker"
 #    - apk add --no-cache curl jq python py-pip
 #    - pip install awscli
-#  script:
+#  init:
 #    - ./build_and_push.sh
 #
 #validate:
 #  stage: validate
-#  script:
+#  init:
 #    - terraform validate
 #
 #plan:
 #  stage: plan
-#  script:
+#  init:
 #    - terraform plan -out "planfile"
 #  dependencies:
 #    - validate
@@ -53,7 +53,7 @@
 
 #apply:
 #  stage: apply
-#  script:
+#  init:
 #    - terraform apply -input=false "planfile"
 #  dependencies:
 #    - plan

@@ -8,7 +8,7 @@ services:
             - POSTGRES_DB=airflow
 
     webserver:
-        image: 781327374347.dkr.ecr.eu-west-1.amazonaws.com/enx-dataschience-airflow
+        image: 781327374347.dkr.ecr.eu-west-1.amazonaws.com/enx-dataschience-airflow:latest
         restart: always
         depends_on:
             - postgres
@@ -17,12 +17,15 @@ services:
             - EXECUTOR=Local
             - FERNET_KEY=qEmHuWobGHr2voNE06ab7QPX14QzUTxcpD1IFhepV-I=
             - AWS_DEFAULT_REGION=eu-west-1
+            - AIRFLOW_USERNAME=${AIRFLOW_USERNAME}
+            - AIRFLOW_PASSWORD=${AIRFLOW_PASSWORD}
         volumes:
             - ./dags:/usr/local/airflow/dags
             # Uncomment to include custom plugins
             - ./plugins:/usr/local/airflow/plugins
             - ./tasks:/usr/local/airflow/tasks
-            - ~/..aws:/usr/local/airflow/..aws
+            - ~/.aws:/usr/local/airflow/.aws
+            - ./init:/init
         ports:
             - "80:8080"
         command: webserver

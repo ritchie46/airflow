@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -e
 repository=enx-dataschience-airflow
 tag=781327374347.dkr.ecr.eu-west-1.amazonaws.com/${repository}
 
@@ -7,7 +8,7 @@ tag=781327374347.dkr.ecr.eu-west-1.amazonaws.com/${repository}
 aws ecr get-login --no-include-email | sh
 
 echo "building $tag"
-docker build  -t ${tag} .
+docker build -t ${tag} .
 
 echo "pushing to $tag"
 docker push ${tag}

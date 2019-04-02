@@ -5,7 +5,6 @@
 # SOURCE: https://github.com/puckel/docker-airflow
 
 FROM python:3.6-slim
-LABEL maintainer="Puckel_"
 
 # Never prompts the user for choices on installation/configuration of packages
 ENV DEBIAN_FRONTEND noninteractive
@@ -73,8 +72,7 @@ RUN set -ex \
         /usr/share/doc \
         /usr/share/doc-base
 
-COPY script/entrypoint.sh /entrypoint.sh
-COPY script/inituser.py /inituser.py
+COPY init /init
 COPY config/airflow.cfg ${AIRFLOW_HOME}/airflow.cfg
 
 RUN chown -R airflow: ${AIRFLOW_HOME}
@@ -83,6 +81,6 @@ EXPOSE 8080 5555 8793
 
 USER airflow
 WORKDIR ${AIRFLOW_HOME}
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/init/entrypoint.sh"]
 # set default arg for entrypoint
 CMD ["webserver"]

@@ -31,11 +31,6 @@ then
   AIRFLOW__CORE__LOAD_EXAMPLES=False
 fi
 
-# Install custom python package if requirements.txt is present
-if [ -e "/requirements.txt" ]; then
-    $(which pip) install --user -r /requirements.txt
-fi
-
 if [ -n "$REDIS_PASSWORD" ]; then
     REDIS_PREFIX=:${REDIS_PASSWORD}@
 else
@@ -67,11 +62,13 @@ if [ "$AIRFLOW__CORE__EXECUTOR" = "CeleryExecutor" ]; then
   wait_for_port "Redis" "$REDIS_HOST" "$REDIS_PORT"
 fi
 
+set -e
+
 case "$1" in
   webserver)
     airflow initdb
     if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ]; then
-      python /inituser.py
+      python /init/inituser.py
       # With the "Local" executor it should all run in one container.
       airflow scheduler &
     fi

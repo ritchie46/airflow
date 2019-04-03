@@ -13,6 +13,8 @@ SPARK_JOB_KEY = 'my-sparkjob.py'
 S3_URI = f's3://{BUCKET}/{SPARK_JOB_KEY}'
 CLUSTER_NAME = f"airflow-cluster-{str(datetime.now()).replace(' ', '_')}"
 LOG_URI = f's3://{BUCKET}/logs/{CLUSTER_NAME}'
+INSTANCE_COUNT = 1
+ACTION_ON_FAILURE = 'CANCEL_AND_WAIT'
 
 spark_steps = [{
     'name': 'process-data',
@@ -33,7 +35,7 @@ for step in spark_steps:
     aws_emr_steps.append(
         {
             'Name': 'setup - copy files',
-            'ActionOnFailure': 'TERMINATE_JOB_FLOW',
+            'ActionOnFailure': ACTION_ON_FAILURE,
             'HadoopJarStep': {
                 'Jar': 'command-runner.jar',
                 'Args': ['aws', 's3', 'cp', s3_uri, '/home/hadoop/']
@@ -42,7 +44,7 @@ for step in spark_steps:
     aws_emr_steps.append(
         {
             'Name': 'Run Spark',
-            'ActionOnFailure': 'TERMINATE_JOB_FLOW',
+            'ActionOnFailure': ACTION_ON_FAILURE,
             'HadoopJarStep': {
                 'Jar': 'command-runner.jar',
                 'Args': ['spark-submit', f"/home/hadoop/{step['spark-job-key']}"]
@@ -77,9 +79,10 @@ cluster_creator = EmrCreateJobFlowOperator(
         'Instances': {
             'MasterInstanceType': 'm4.xlarge',
             'SlaveInstanceType': 'm4.xlarge',
-            'InstanceCount': 1,
+            'InstanceCount': INSTANCE_COUNT,
             'TerminationProtected': False,
             'KeepJobFlowAliveWhenNoSteps': True,
+            'Ec2KeyName': 'enx-ec2',
             'Ec2SubnetId': "{{ task_instance.xcom_pull('find_subnet', key='return_value') }}"
         },
         'Configurations': [
@@ -104,7 +107,6 @@ cluster_creator = EmrCreateJobFlowOperator(
                 }
             },
         ],
-
     },
     dag=dag
 )

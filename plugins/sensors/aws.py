@@ -12,7 +12,7 @@ class EmrStepSensor(BaseSensorOperator):
     FAILED_STATE = ['CANCELLED', 'FAILED', 'INTERRUPTED']
 
     @apply_defaults
-    def __init__(self, job_flow_id, step_id, step_id_xcom=None, *args, **kwargs):
+    def __init__(self, job_flow_id, step_id=None, step_id_xcom=None, *args, **kwargs):
         """
 
         :param job_flow_id: (str) Job flow id in AWS, (get from XCom)

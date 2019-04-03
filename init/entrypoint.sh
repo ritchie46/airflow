@@ -16,6 +16,8 @@ TRY_LOOP="20"
 : "${AIRFLOW__CORE__FERNET_KEY:=${FERNET_KEY:=$(python -c "from cryptography.fernet import Fernet; FERNET_KEY = Fernet.generate_key().decode(); print(FERNET_KEY)")}}"
 : "${AIRFLOW__CORE__EXECUTOR:=${EXECUTOR:-Sequential}Executor}"
 
+export PYTHONPATH="/modules:$PYTHONPATH"
+
 export \
   AIRFLOW__CELERY__BROKER_URL \
   AIRFLOW__CELERY__RESULT_BACKEND \
@@ -67,8 +69,9 @@ set -e
 case "$1" in
   webserver)
     airflow initdb
+    python /init/inituser.py
+
     if [ "$AIRFLOW__CORE__EXECUTOR" = "LocalExecutor" ]; then
-      python /init/inituser.py
       # With the "Local" executor it should all run in one container.
       airflow scheduler &
     fi

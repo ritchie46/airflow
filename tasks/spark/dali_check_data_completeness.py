@@ -16,7 +16,7 @@ sc = SparkContext(conf = conf)
 spark = SQLContext(sc)
 
 # Get previous result and the last date:
-df = spark.read.parquet("s3://enx-datascience-dali-dq/dali-data-completeness")
+df = spark.read.parquet("s3://enx-datascience-dali-dq/dali-data-completeness-test")
 startdate_update = datetime.datetime.combine(df.select(F.max("date")).first()['max(date)'], datetime.time.min)+datetime.timedelta(days=1)
 enddate_update = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 

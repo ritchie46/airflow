@@ -59,7 +59,7 @@ resource "aws_instance" "web" {
   }
 
   provisioner "local-exec" {
-    command = "echo ${aws_instance.web.public_ip} > ../ip_address.txt"
+    command = "echo ${aws_instance.web.public_ip} > ./ip_address.txt"
   }
 
   tags = {

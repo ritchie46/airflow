@@ -15,11 +15,11 @@ df_old = spark.read.parquet("s3://enx-datascience-dali-dq/dali-data-preprocessed
 startdate_update = datetime.datetime.combine(df_old.select(F.max("date")).first()['max(date)'],
                                              datetime.time.min) + datetime.timedelta(days=1)
 
-# startdate_update = datetime.datetime(2019,1,1,0,0)
-
 enddate_update = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
-df = spark.read.json("s3://enxt-dl-raw/salvador/sensordata/readings/year=2019/month={}/*/*".format(datetime.datetime.now().month))
+json_path = "s3://enxt-dl-raw/salvador/sensordata/readings/year=2019/month={}/*/*".format(datetime.datetime.now().strftime('%m'))
+print('Load files from:', json_path)
+df = spark.read.json(json_path)
 
 df = df \
     .select('boxid', 'channelid', 'timestamp', 'value') \

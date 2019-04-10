@@ -72,7 +72,7 @@ class SparkSteps:
             )]
         return self
 
-    def add_spark_job(self, local_file, key, action_on_failure='TERMINATE_CLUSTER'):
+    def add_spark_job(self, local_file, key, jobargs=(), action_on_failure='TERMINATE_CLUSTER'):
 
         emr_steps = [
             {
@@ -88,7 +88,7 @@ class SparkSteps:
                 'ActionOnFailure': action_on_failure,
                 'HadoopJarStep': {
                     'Jar': 'command-runner.jar',
-                    'Args': ['spark-submit', f"/home/hadoop/{key}"]
+                    'Args': ['spark-submit', f"/home/hadoop/{key}"] + list(jobargs)
                 }
             }
 

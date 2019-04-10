@@ -29,12 +29,11 @@ class EmrStepSensor(BaseSensorOperator):
         self.step_id_xcom = step_id_xcom
 
     def poke(self, context):
-        response = self.emr.describe_step(ClusterId=self.job_flow_id, StepId=self.step_id)
-
         if self.step_id_xcom is not None:
             task_instance = context['task_instance']
             self.step_id = task_instance.xcom_pull(self.step_id_xcom, key='return_value')[-1]
 
+        response = self.emr.describe_step(ClusterId=self.job_flow_id, StepId=self.step_id)
         if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
             self.log.info('Bad HTTP response: %s', response)
             return False

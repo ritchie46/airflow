@@ -16,9 +16,8 @@ dag = DAG(DAG_NAME, schedule_interval='@once', default_args=DEFAULT_ARGS)
 
 with SparkSteps(DEFAULT_ARGS, dag, instance_count=1) as ss:
 
-    ss.add_spark_job(local_file='tasks/spark/dali-process-data.py', key='process_data.py')
+    ss.add_spark_job(local_file='tasks/spark/dali-process-data.py', key='process_data.py', jobargs=['2019', '4', '8'])
 
-    ss.add_spark_job(local_file='tasks/spark/dali_check_data_completeness.py', key='completeness.py')
 
 
 

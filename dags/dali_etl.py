@@ -14,7 +14,7 @@ DEFAULT_ARGS = {
 
 dag = DAG(DAG_NAME, schedule_interval='@once', default_args=DEFAULT_ARGS)
 
-with SparkSteps(DEFAULT_ARGS, dag, instance_count=1) as ss:
+with SparkSteps(DEFAULT_ARGS, dag, instance_count=1, bootstrap_requirements={'pyodbc': '4.0.26'}) as ss:
 
     ss.add_spark_job(local_file='tasks/spark/dali-process-data.py', key='process_data.py', jobargs=['2019', '4', '8'])
 

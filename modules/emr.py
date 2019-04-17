@@ -4,11 +4,28 @@ from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.operators.emr_terminate_job_flow_operator import EmrTerminateJobFlowOperator
 # custom operator plugins
 from airflow.operators import EmrStepSensor, UploadFiles, FindSubnet
+from airflow.hooks.S3_hook import S3Hook
+import boto3
 
 
 class SparkSteps:
-    def __init__(self, default_args, dag, instance_count=1, bucket='enx-ds-airflow', master_instance_type='m4.xlarge',
-                 slave_instance_type='m4.xlarge', ec2_key_name='enx-ec2'):
+    def __init__(self, default_args, dag, instance_count=1, master_instance_type='m4.xlarge',
+                 slave_instance_type='m4.xlarge', ec2_key_name='enx-ec2', bootstrap_requirements=None,
+                 bucket='enx-ds-airflow', ):
+        """
+        Utility class that helps with a synchronous dag for EMR.
+
+        :param default_args: (dict) Default args for the dag.
+        :param dag: (DAG)
+        :param instance_count: (int) Count of all the instances. Master + Slaves
+        :param master_instance_type: (str) Type of ec2-machines. See: https://aws.amazon.com/ec2/instance-types/
+        :param slave_instance_type: (str) Type of ec2-machines. See: https://aws.amazon.com/ec2/instance-types/
+        :param ec2_key_name: (str) Name of the ec2 key. This allows you to ssh into the EMR cluster.
+        :param bootstrap_requirements: (dict) Python libraries needed for the EMR tasks.
+                                              { 'numpy': '1.15.4'
+                                                'psycopg2' : '0.9' }
+        :param bucket: (str) s3 bucket where the EMR tasks will be copied to. Recommended to leave default.
+        """
         self.default_args = default_args
         self.cluster_name = f"airflow-cluster-{str(datetime.now()).replace(' ', '_')}"
         self.bucket = bucket
@@ -21,16 +38,33 @@ class SparkSteps:
         self.find_subnet = None
         self.cluster_creator = None
         self.job_count = 0
+        self.bootstrap_requirements = bootstrap_requirements
+        self.bootstrap_key = None
 
     def __enter__(self):
-        self.tasks = [FindSubnet(
-            task_id='find_subnet',
-            dag=self.dag
-        ),
+        s = r"""
+        #!/bin/bash
+        set -e
+        set -x
+        # Non-standard and non-Amazon Machine Image Python modules:
+        sudo pip-3.4 install -U \
+        awscli \
+        boto3 \
+        
+        """ + ' \\ \n'.join("{}=={}".format(key, val) for key, val in self.bootstrap_requirements.items())
+
+        self.bootstrap_key = f'{hash(s)}.sh'
+        S3Hook().load_string(s, key=self.bootstrap_key, bucket_name=self.bucket)
+
+        self.tasks = [
+            FindSubnet(
+                task_id='find_subnet',
+                dag=self.dag
+            ),
             EmrCreateJobFlowOperator(
-                task_id='create_emr_cluster',
+                task_id='create_EMR_cluster',
                 # region_name='eu-west-1a',
-                # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/emr.html#EMR.Client.run_job_flow
+                # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/EMR.html#EMR.Client.run_job_flow
                 # can set bootstrap actions etc.
                 job_flow_overrides={
                     'VisibleToAllUsers': True,  # needed for sensor
@@ -62,7 +96,7 @@ class SparkSteps:
                         {
                             'Name': 'python-dependencies',
                             'ScriptBootstrapAction': {
-                                'Path': 's3://enx-ds-airflow/bootstrap_emr.sh',
+                                'Path': f's3://{self.bucket}/{self.bootstrap_key}',
                                 'Args': ['']
                             }
                         },
@@ -73,8 +107,7 @@ class SparkSteps:
         return self
 
     def add_spark_job(self, local_file, key, jobargs=(), action_on_failure='TERMINATE_CLUSTER'):
-
-        emr_steps = [
+        EMR_steps = [
             {
                 'Name': f'setup - copy files_{local_file}',
                 'ActionOnFailure': action_on_failure,
@@ -104,15 +137,15 @@ class SparkSteps:
                 dag=self.dag
             ),
             EmrAddStepsOperator(
-                task_id=f'add_emr_steps_{self.job_count}',
-                job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
-                steps=emr_steps,
+                task_id=f'add_EMR_steps_{self.job_count}',
+                job_flow_id="{{ task_instance.xcom_pull('create_EMR_cluster', key='return_value') }}",
+                steps=EMR_steps,
                 dag=self.dag
             ),
             EmrStepSensor(
                 task_id=f'watch_step_{self.job_count}',
-                job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
-                step_id_xcom=f'add_emr_steps_{self.job_count}',
+                job_flow_id="{{ task_instance.xcom_pull('create_EMR_cluster', key='return_value') }}",
+                step_id_xcom=f'add_EMR_steps_{self.job_count}',
                 dag=self.dag
             )
         ]
@@ -122,12 +155,13 @@ class SparkSteps:
         self.tasks += [
             EmrTerminateJobFlowOperator(
                 task_id='remove_cluster',
-                job_flow_id="{{ task_instance.xcom_pull('create_emr_cluster', key='return_value') }}",
+                job_flow_id="{{ task_instance.xcom_pull('create_EMR_cluster', key='return_value') }}",
                 dag=self.dag
             )
         ]
         for i in range(1, len(self.tasks)):
             self.tasks[i - 1].set_downstream(self.tasks[i])
 
-
-
+        # delete bootstrap script
+        s3 = boto3.resource('s3')
+        s3.Object(self.bucket, self.bootstrap_key).delete()

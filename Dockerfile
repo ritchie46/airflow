@@ -17,6 +17,8 @@ COPY ./requirements.txt /requirements.txt
 # libsasl2-dev: airflow[hive]
 # libpq-dev: airlfow[postgres]
 
+# netcat needed for checking if postgres port is listening
+
 RUN set -ex \
     && buildDeps=' \
         freetds-dev \
@@ -31,6 +33,7 @@ RUN set -ex \
     && apt-get install -yqq --no-install-recommends \
         $buildDeps \
         build-essential \
+        netcat \
         curl \
         rsync \
     && useradd -ms /bin/bash -d ${AIRFLOW_HOME} airflow \

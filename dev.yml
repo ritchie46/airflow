@@ -8,21 +8,18 @@ services:
             - POSTGRES_DB=airflow
 
     webserver:
-        build: .
-#        image: ritchie46/enx-airflow
+        image: ritchie46/enx-airflow
         restart: always
         depends_on:
             - postgres
         environment:
-            - LOAD_EX=n
-            - EXECUTOR=Local
             - FERNET_KEY=qEmHuWobGHr2voNE06ab7QPX14QzUTxcpD1IFhepV-I=
             - AWS_DEFAULT_REGION=eu-west-1
             - AIRFLOW_USERNAME=dev
             - AIRFLOW_PASSWORD=dev
         volumes:
             - ./dags:/usr/local/airflow/dags
-            # Uncomment to include custom plugins
+            - ./config:/config
             - ./plugins:/usr/local/airflow/plugins
             - ./tasks:/usr/local/airflow/tasks
             - ~/.aws:/usr/local/airflow/.aws
@@ -30,7 +27,6 @@ services:
             - ./modules:/modules/modules
         ports:
             - "80:8080"
-        command: webserver
         healthcheck:
             test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
             interval: 30s

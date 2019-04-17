@@ -21,7 +21,6 @@ services:
             - AIRFLOW_PASSWORD=${AIRFLOW_PASSWORD}
         volumes:
             - ./dags:/usr/local/airflow/dags
-            # Uncomment to include custom plugins
             - ./plugins:/usr/local/airflow/plugins
             - ./tasks:/usr/local/airflow/tasks
             - ~/.aws:/usr/local/airflow/.aws

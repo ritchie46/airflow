@@ -4,14 +4,13 @@ from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.operators.emr_terminate_job_flow_operator import EmrTerminateJobFlowOperator
 # custom operator plugins
 from airflow.operators import EmrStepSensor, UploadFiles, FindSubnet
-from airflow.hooks.S3_hook import S3Hook
-import boto3
+import hashlib
 
 
 class SparkSteps:
     def __init__(self, default_args, dag, instance_count=1, master_instance_type='m4.xlarge',
-                 slave_instance_type='m4.xlarge', ec2_key_name='enx-ec2', bootstrap_requirements=None,
-                 bucket='enx-ds-airflow', ):
+                 slave_instance_type='m4.xlarge', ec2_key_name='enx-ec2', bootstrap_requirements_python=None,
+                 bootstrap_requirements_yum=(), bucket='enx-ds-airflow'):
         """
         Utility class that helps with a synchronous dag for EMR.
 
@@ -21,9 +20,11 @@ class SparkSteps:
         :param master_instance_type: (str) Type of ec2-machines. See: https://aws.amazon.com/ec2/instance-types/
         :param slave_instance_type: (str) Type of ec2-machines. See: https://aws.amazon.com/ec2/instance-types/
         :param ec2_key_name: (str) Name of the ec2 key. This allows you to ssh into the EMR cluster.
-        :param bootstrap_requirements: (dict) Python libraries needed for the EMR tasks.
+        :param bootstrap_requirements_python: (dict) Python libraries needed for the EMR tasks.
                                               { 'numpy': '1.15.4'
                                                 'psycopg2' : '0.9' }
+        :param bootstrap_requirements_yum: (list) Containing extra system requirements. Example:
+                                                ['unixODBC-devel', 'gcc-c++']
         :param bucket: (str) s3 bucket where the EMR tasks will be copied to. Recommended to leave default.
         """
         self.default_args = default_args
@@ -38,25 +39,34 @@ class SparkSteps:
         self.find_subnet = None
         self.cluster_creator = None
         self.job_count = 0
-        self.bootstrap_requirements = bootstrap_requirements
+        self.bootstrap_requirements_python = bootstrap_requirements_python
+        self.bootstrap_requirements_yum = bootstrap_requirements_yum
         self.bootstrap_key = None
 
     def __enter__(self):
-        s = r"""
-        #!/bin/bash
-        set -e
-        set -x
-        # Non-standard and non-Amazon Machine Image Python modules:
-        sudo pip-3.4 install -U \
-        awscli \
-        boto3 \
-        
-        """ + ' \\ \n'.join("{}=={}".format(key, val) for key, val in self.bootstrap_requirements.items())
+        s = "#!/bin/bash\nset -e\nset -x\n"
+        if self.bootstrap_requirements_yum is not None:
+            s += "\nsudo yum -y install {}\n".format(' '.join(self.bootstrap_requirements_yum))
 
-        self.bootstrap_key = f'{hash(s)}.sh'
-        S3Hook().load_string(s, key=self.bootstrap_key, bucket_name=self.bucket)
+        s += "sudo pip-3.4 install -U \\\nawscli \\\nboto3 \\"
+
+        if self.bootstrap_requirements_python is not None:
+            s += ('\n' + ' \\ \n'.join("{}=={}".format(key, val) for key, val in
+                                       self.bootstrap_requirements_python.items()))
+
+        print('BOOTSTRAP SCRIPT:', s)
+
+        self.bootstrap_key = f"bootstrap_scripts/{hashlib.sha1(bytes(s, 'utf-8')).hexdigest()}.sh"
 
         self.tasks = [
+            UploadFiles(
+                task_id='upload-bootstrap-actions',
+                dag=self.dag,
+                bucket=self.bucket,
+                keys=[self.bootstrap_key],
+                local_files=[s]
+            ),
+
             FindSubnet(
                 task_id='find_subnet',
                 dag=self.dag
@@ -162,6 +172,4 @@ class SparkSteps:
         for i in range(1, len(self.tasks)):
             self.tasks[i - 1].set_downstream(self.tasks[i])
 
-        # delete bootstrap script
-        s3 = boto3.resource('s3')
-        s3.Object(self.bucket, self.bootstrap_key).delete()
+

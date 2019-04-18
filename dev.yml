@@ -8,7 +8,7 @@ services:
             - POSTGRES_DB=airflow
 
     webserver:
-        image: ritchie46/enx-airflow
+        image: ritchie46/enx-airflow:0.1
         restart: always
         depends_on:
             - postgres
@@ -23,8 +23,9 @@ services:
             - ./plugins:/usr/local/airflow/plugins
             - ./tasks:/usr/local/airflow/tasks
             - ~/.aws:/usr/local/airflow/.aws
-            - ./init:/init
             - ./modules:/modules/modules
+            # Comment out the line below on windows.
+            - ./init:/init
         ports:
             - "80:8080"
         healthcheck:

@@ -13,9 +13,9 @@ conf = SparkConf()
 sc = SparkContext(conf=conf)
 spark = SQLContext(sc)
 
-year = int(sys.argv[0])
-month = int(sys.argv[1])
-day = int(sys.argv[2])
+year = int(sys.argv[1])
+month = int(sys.argv[2])
+day = int(sys.argv[3])
 startdate_update = datetime.datetime(year, month, day, 0, 0) + datetime.timedelta(days=1)
 
 enddate_update = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)

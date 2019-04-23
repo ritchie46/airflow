@@ -54,8 +54,6 @@ class SparkSteps:
             s += ('\n' + ' \\ \n'.join("{}=={}".format(key, val) for key, val in
                                        self.bootstrap_requirements_python.items()))
 
-        print('BOOTSTRAP SCRIPT:', s)
-
         self.bootstrap_key = f"bootstrap_scripts/{hashlib.sha1(bytes(s, 'utf-8')).hexdigest()}.sh"
 
         self.tasks = [

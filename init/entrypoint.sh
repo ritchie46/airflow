@@ -27,15 +27,19 @@ wait_for_port() {
 if [[ -z RUNNING_CI ]]; then
     cp /config/airflow.cfg ~/airflow.cfg
     export PYTHONPATH="/modules:$PYTHONPATH"
-    AIRFLOW_HOME=$(pwd)
 else
     cp config/airflow.cfg ~/airflow.cfg
     export PYTHONPATH="modules:$PYTHONPATH"
+    AIRFLOW_HOME=$(pwd)
+    POSTGRES_HOST=${postgres_service}
+    echo "$postgres_service"
 fi
 
 export AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB"
 
-wait_for_port "postgres" "$POSTGRES_HOST" 5432
+if [[ -z RUNNING_CI ]]; then
+    wait_for_port "postgres" "$POSTGRES_HOST" 5432
+fi
 
 airflow initdb
 python /init/inituser.py

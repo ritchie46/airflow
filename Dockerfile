@@ -59,6 +59,4 @@ EXPOSE 8080
 
 USER airflow
 WORKDIR ${AIRFLOW_HOME}
-ENTRYPOINT ["/init/entrypoint.sh"]
-# set default arg for entrypoint
-CMD ["webserver"]
+CMD "/init/entrypoint.sh"

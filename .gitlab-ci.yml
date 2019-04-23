@@ -1,61 +1,28 @@
-# note add env AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
-#image:
-#  name: hashicorp/terraform:light
-#  entrypoint:
-#    - '/usr/bin/env'
-#    - 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
-#
-#before_script:
-#  - rm -rf terraform/.terraform
-#  - terraform --version
-#  - mkdir -p ./creds
-#  - cd terraform
-#  - terraform init
-#  - mkdir -p ~/.ssh/aws-enx
-#  - echo "${SSH_KEY}" > ~/.ssh/aws-enx/enx-ec2.pem
-#  - mkdir ~/.aws
-#  - echo "${AWS_CREDENTIALS}" > ~/.aws/credentials
-#
-#stages:
-#  - docker-build
-#  - validate
-#  - plan
-#  - apply
-#
-#docker-build:
-#  tags:
-#    - docker-builder-t3-medium
-#  image: docker:latest
-#  stage: docker-build
-#  services:
-#    - docker:dind
-#  before_script:
-#    - export NO_PROXY="localhost, docker"
-#    - apk add --no-cache curl jq python py-pip
-#    - pip install awscli
-#  init:
-#    - ./build_and_push.sh
-#
-#validate:
-#  stage: validate
-#  init:
-#    - terraform validate
-#
-#plan:
-#  stage: plan
-#  init:
-#    - terraform plan -out "planfile"
-#  dependencies:
-#    - validate
-#  artifacts:
-#    paths:
-#      - terraform/planfile
+image:
+  name: ritchie46/enx-airflow:latest
+  # https://gitlab.com/gitlab-org/gitlab-runner/issues/1170
+  entrypoint: [""]
 
-#apply:
-#  stage: apply
-#  init:
-#    - terraform apply -input=false "planfile"
-#  dependencies:
-#    - plan
-#    - docker-build
-#  when: manual
+
+services:
+  - name: postgres:9.6
+    alias: postgres_service
+
+# needed to env vars for postgres db
+variables:
+  POSTGRES_USER: airflow
+  POSTGRES_PASSWORD: airflow
+  POSTGRES_DB: airflow
+  RUNNING_CI: "1"
+
+
+test:
+  script:
+    - export POSTGRES_HOST="$POSTGRES_SERVICE_PORT_5432_TCP_ADDR"
+    - export AIRFLOW_USERNAME=dev
+    - export AIRFLOW_PASSWORD=dev
+    - export AWS_DEFAULT_REGION=eu-west-1
+    - export AIRFLOW_HOME=$(pwd)
+    - init/entrypoint.sh
+
+

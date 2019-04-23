@@ -1,37 +1,50 @@
 #!/usr/bin/env bash
 
-: "${POSTGRES_HOST:="postgres"}"
-: "${POSTGRES_PORT:="5432"}"
-: "${POSTGRES_USER:="airflow"}"
-: "${POSTGRES_PASSWORD:="airflow"}"
-: "${POSTGRES_DB:="airflow"}"
+# we don't want this to run in gitalab ci
+: ${POSTGRES_HOST:="postgres"}
+: ${POSTGRES_USER:="airflow"}
+: ${POSTGRES_PASSWORD:="airflow"}
+: ${POSTGRES_DB:="airflow"}
+: ${AIRFLOW_HOME:="/usr/local/airflow"}
+export AIRFLOW_HOME
 
 
 wait_for_port() {
   local name="$1" host="$2" port="$3"
   local j=0
+  local n=20
   while ! nc -z "$host" "$port" < /dev/null; do
     j=$((j+1))
-    if [ $j -ge 20 ]; then
+    if [[ ${j} -ge ${n} ]]; then
       echo >&2 "$(date) - $host:$port still not reachable, giving up"
       exit 1
     fi
-    echo "$(date) - waiting for $name... $j/$TRY_LOOP"
+    echo "$(date) - waiting for $name... $j/$n"
     sleep 5
   done
 }
 
+if [[ -z RUNNING_CI ]]; then
+    cp /config/airflow.cfg ~/airflow.cfg
+    export PYTHONPATH="/modules:$PYTHONPATH"
+    AIRFLOW_HOME=$(pwd)
+else
+    cp config/airflow.cfg ~/airflow.cfg
+    export PYTHONPATH="modules:$PYTHONPATH"
+fi
 
-cp /config/airflow.cfg ~/airflow.cfg
-export AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
-export AIRFLOW_HOME="/usr/local/airflow"
-export PYTHONPATH="/modules:$PYTHONPATH"
+export AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB"
 
-wait_for_port "postgres" "$POSTGRES_HOST" "$POSTGRES_PORT"
+wait_for_port "postgres" "$POSTGRES_HOST" 5432
 
 airflow initdb
 python /init/inituser.py
-airflow scheduler &
-airflow webserver
 
+if [[ -z RUNNING_CI ]]; then
+    airflow scheduler &
+    airflow webserver
+else
+    airflow list_dags | grep emr_dag_example > /dev/null
+    exit $?
+fi
 

@@ -59,4 +59,5 @@ EXPOSE 8080
 
 USER airflow
 WORKDIR ${AIRFLOW_HOME}
-CMD "/init/entrypoint.sh"
+ENTRYPOINT ["/bin/bash", "-c"]
+CMD  "/init/entrypoint.sh"

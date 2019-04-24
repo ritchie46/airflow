@@ -24,7 +24,7 @@ wait_for_port() {
   done
 }
 
-if [[ -z RUNNING_CI ]]; then
+if [[ -z ${RUNNING_CI} ]]; then
     cp /config/airflow.cfg ~/airflow.cfg
     export PYTHONPATH="/modules:$PYTHONPATH"
 else
@@ -44,10 +44,12 @@ fi
 airflow initdb
 python /init/inituser.py
 
-if [[ -z RUNNING_CI ]]; then
+if [[ -z ${RUNNING_CI} ]]; then
+    echo "start scheduler & webserver..."
     airflow scheduler &
     airflow webserver
 else
+    echo "test dag list..."
     airflow list_dags | grep emr_dag_example > /dev/null
     exit $?
 fi

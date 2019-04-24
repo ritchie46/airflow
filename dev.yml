@@ -8,7 +8,7 @@ services:
             - POSTGRES_DB=airflow
 
     webserver:
-        image: ritchie46/enx-airflow:0.1
+        image: ritchie46/enx-airflow:0.3
         restart: always
         depends_on:
             - postgres
@@ -28,6 +28,7 @@ services:
             - ./init:/init
         ports:
             - "80:8080"
+        command: /init/entrypoint.sh
         healthcheck:
             test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
             interval: 30s

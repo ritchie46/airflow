@@ -62,7 +62,8 @@ class SparkSteps:
                 dag=self.dag,
                 bucket=self.bucket,
                 keys=[self.bootstrap_key],
-                local_files=[s]
+                local_files=[s],
+                file_type='str'
             ),
 
             FindSubnet(
@@ -115,6 +116,13 @@ class SparkSteps:
         return self
 
     def add_spark_job(self, local_file, key, jobargs=(), action_on_failure='TERMINATE_CLUSTER'):
+        """
+
+        :param local_file: (str) path to local python file.
+        :param key: (str) Location in S3 cluster.
+        :param jobargs: (tpl/ list) containing job arguments as strings
+        :param action_on_failure: (str) 'TERMINATE_JOB_FLOW'|'TERMINATE_CLUSTER'|'CANCEL_AND_WAIT'|'CONTINUE'
+        """
         EMR_steps = [
             {
                 'Name': f'setup - copy files_{local_file}',

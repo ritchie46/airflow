@@ -24,17 +24,26 @@ class FindSubnet(BaseOperator):
 class UploadFiles(BaseOperator):
 
     @apply_defaults
-    def __init__(self, local_files, bucket, keys, replace=True, *args, **kwargs):
+    def __init__(self, local_files, bucket, keys, replace=True, file_type='path', *args, **kwargs):
+        """
+
+        :param local_files: (list) with paths or file contents
+        :param bucket: (str)
+        :param keys: (str)
+        :param replace: (bool) Replace the file in S3
+        :param file_type: (str) 'path'|'str'
+        """
         super().__init__(*args, **kwargs)
         self.bucket = bucket
         self.keys = keys
         self.replace = replace
         self.local_files = local_files
+        self.file_type = file_type
 
     def execute(self, context):
         for key, f in zip(self.keys, self.local_files):
             s3 = S3Hook()
-            if isinstance(f, str):
+            if self.file_type == 'str':
                 s3.load_string(f, key, self.bucket, self.replace)
             else:
                 s3.load_file(f, key, self.bucket, self.replace)

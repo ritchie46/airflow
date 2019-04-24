@@ -8,7 +8,6 @@
 : ${AIRFLOW_HOME:="/usr/local/airflow"}
 export AIRFLOW_HOME
 
-
 wait_for_port() {
   local name="$1" host="$2" port="$3"
   local j=0
@@ -37,7 +36,7 @@ fi
 
 export AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:5432/$POSTGRES_DB"
 
-if [[ -z RUNNING_CI ]]; then
+if [[ -z ${RUNNING_CI} ]]; then
     wait_for_port "postgres" "$POSTGRES_HOST" 5432
 fi
 

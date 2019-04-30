@@ -12,7 +12,7 @@ class SparkSteps:
                  slave_instance_type='m4.xlarge', ec2_key_name='enx-ec2',
                  bootstrap_requirements_python_with_version=None,
                  bootstrap_requirements_python_without_version=None,
-                 bootstrap_requirements_yum=(), bucket='enx-ds-airflow'):
+                 bootstrap_requirements_yum=None, bucket='enx-ds-airflow'):
         """
         Utility class that helps with a synchronous dag for EMR.
 
@@ -53,7 +53,7 @@ class SparkSteps:
         if self.bootstrap_requirements_yum is not None:
             s += "\nsudo yum -y install {}\n".format(' '.join(self.bootstrap_requirements_yum))
 
-        s += "sudo pip-3.4 install -U \\\nawscli \\\nboto3 \\"
+        s += "sudo pip-3.6 install -U \\\nawscli \\\nboto3 \\"
 
         if self.bootstrap_requirements_python_with_version is not None:
             s += ('\n' + ' \\ \n'.join("{}=={}".format(key, val) for key, val in
@@ -85,6 +85,7 @@ class SparkSteps:
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/EMR.html#EMR.Client.run_job_flow
                 # can set bootstrap actions etc.
                 job_flow_overrides={
+                    'ReleaseLabel': 'emr-5.23.0',
                     'VisibleToAllUsers': True,  # needed for sensor
                     'Name': self.cluster_name,
                     'LogUri': f's3://{self.bucket}/logs/{self.cluster_name}',

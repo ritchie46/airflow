@@ -9,7 +9,9 @@ import hashlib
 
 class SparkSteps:
     def __init__(self, default_args, dag, instance_count=1, master_instance_type='m4.xlarge',
-                 slave_instance_type='m4.xlarge', ec2_key_name='enx-ec2', bootstrap_requirements_python=None,
+                 slave_instance_type='m4.xlarge', ec2_key_name='enx-ec2',
+                 bootstrap_requirements_python_with_version=None,
+                 bootstrap_requirements_python_without_version=None,
                  bootstrap_requirements_yum=(), bucket='enx-ds-airflow'):
         """
         Utility class that helps with a synchronous dag for EMR.
@@ -20,9 +22,11 @@ class SparkSteps:
         :param master_instance_type: (str) Type of ec2-machines. See: https://aws.amazon.com/ec2/instance-types/
         :param slave_instance_type: (str) Type of ec2-machines. See: https://aws.amazon.com/ec2/instance-types/
         :param ec2_key_name: (str) Name of the ec2 key. This allows you to ssh into the EMR cluster.
-        :param bootstrap_requirements_python: (dict) Python libraries needed for the EMR tasks.
+        :param bootstrap_requirements_python_with_version: (dict) Python libraries needed for the EMR tasks.
                                               { 'numpy': '1.15.4'
                                                 'psycopg2' : '0.9' }
+        :param bootstrap_requirements_python_without_version: (list) Python libraries needed for the EMR tasks.
+                                              ['numpy', 'pandas']
         :param bootstrap_requirements_yum: (list) Containing extra system requirements. Example:
                                                 ['unixODBC-devel', 'gcc-c++']
         :param bucket: (str) s3 bucket where the EMR tasks will be copied to. Recommended to leave default.
@@ -39,7 +43,8 @@ class SparkSteps:
         self.find_subnet = None
         self.cluster_creator = None
         self.job_count = 0
-        self.bootstrap_requirements_python = bootstrap_requirements_python
+        self.bootstrap_requirements_python_with_version = bootstrap_requirements_python_with_version
+        self.bootstrap_requirements_python_without_version = bootstrap_requirements_python_without_version
         self.bootstrap_requirements_yum = bootstrap_requirements_yum
         self.bootstrap_key = None
 
@@ -50,9 +55,13 @@ class SparkSteps:
 
         s += "sudo pip-3.4 install -U \\\nawscli \\\nboto3 \\"
 
-        if self.bootstrap_requirements_python is not None:
+        if self.bootstrap_requirements_python_with_version is not None:
             s += ('\n' + ' \\ \n'.join("{}=={}".format(key, val) for key, val in
-                                       self.bootstrap_requirements_python.items()))
+                                       self.bootstrap_requirements_python_with_version.items())) + ' \\'
+
+        if self.bootstrap_requirements_python_without_version is not None:
+            for package in self.bootstrap_requirements_python_without_version:
+                s += f'\n{package} \\'
 
         self.bootstrap_key = f"bootstrap_scripts/{hashlib.sha1(bytes(s, 'utf-8')).hexdigest()}.sh"
 

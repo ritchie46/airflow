@@ -1,7 +1,7 @@
 from airflow.sensors.base_sensor_operator import BaseSensorOperator
-
 from airflow.exceptions import AirflowException
 import boto3
+from botocore.exceptions import ClientError
 from airflow.utils.decorators import apply_defaults
 
 
@@ -22,7 +22,7 @@ class EmrStepSensor(BaseSensorOperator):
         :param args:
         :param kwargs:
         """
-        super().__init__(*args, **kwargs, poke_interval=3, soft_fail=False, mode='poke')
+        super().__init__(*args, **kwargs, poke_interval=90, soft_fail=False, mode='poke')
         self.emr = boto3.client('emr')
         self.job_flow_id = job_flow_id
         self.step_id = step_id
@@ -33,7 +33,11 @@ class EmrStepSensor(BaseSensorOperator):
             task_instance = context['task_instance']
             self.step_id = task_instance.xcom_pull(self.step_id_xcom, key='return_value')[-1]
 
-        response = self.emr.describe_step(ClusterId=self.job_flow_id, StepId=self.step_id)
+        try:
+            response = self.emr.describe_step(ClusterId=self.job_flow_id, StepId=self.step_id)
+        except ClientError as e:
+            print("Boto exception in poke EmrStepSensor:", e)
+            return True
         if not response['ResponseMetadata']['HTTPStatusCode'] == 200:
             self.log.info('Bad HTTP response: %s', response)
             return False

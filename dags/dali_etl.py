@@ -15,13 +15,6 @@ DEFAULT_ARGS = {
 dag = DAG(DAG_NAME, schedule_interval='@once', default_args=DEFAULT_ARGS)
 
 with SparkSteps(DEFAULT_ARGS, dag, instance_count=1,
-                bootstrap_requirements_python_with_version={'pyodbc': '3.0.10'},
-                bootstrap_requirements_python_without_version=['pandas'],
-                bootstrap_requirements_yum=['unixODBC-devel', 'gcc-c++']) as ss:
+                bootstrap_script='tasks/bootstrapping/odbc.sh') as ss:
 
     ss.add_spark_job(local_file='tasks/spark/dali-process-data.py', key='process_data.py', jobargs=['2019', '4', '8'])
-
-
-
-
-

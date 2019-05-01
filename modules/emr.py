@@ -7,12 +7,35 @@ from airflow.operators import EmrStepSensor, UploadFiles, FindSubnet
 import hashlib
 
 
+def create_bootstrap_script(bootstrap_requirements_yum,
+                            bootstrap_requirements_python_with_version,
+                            bootstrap_requirements_python_without_version, s=None):
+    if s is None:
+        s = "#!/bin/bash\nset -e\nset -x\n"
+    if bootstrap_requirements_yum is not None:
+        s += "\nsudo yum -y install {}\n".format(' '.join(bootstrap_requirements_yum))
+
+    s += "sudo pip-3.6 install -U \\\nawscli \\\nboto3 \\"
+
+    if bootstrap_requirements_python_with_version is not None:
+        s += ('\n' + ' \\ \n'.join("{}=={}".format(key, val) for key, val in
+                                   bootstrap_requirements_python_with_version.items())) + ' \\'
+
+    if bootstrap_requirements_python_without_version is not None:
+        for package in bootstrap_requirements_python_without_version:
+            s += f'\n{package} \\'
+    key = f"bootstrap_scripts/{hashlib.sha1(bytes(s, 'utf-8')).hexdigest()}.sh"
+    return s, key
+
+
 class SparkSteps:
     def __init__(self, default_args, dag, instance_count=1, master_instance_type='m4.xlarge',
                  slave_instance_type='m4.xlarge', ec2_key_name='enx-ec2',
                  bootstrap_requirements_python_with_version=None,
                  bootstrap_requirements_python_without_version=None,
-                 bootstrap_requirements_yum=None, bucket='enx-ds-airflow'):
+                 bootstrap_requirements_yum=None,
+                 bootstrap_script=None,
+                 bucket='enx-ds-airflow'):
         """
         Utility class that helps with a synchronous dag for EMR.
 
@@ -29,6 +52,7 @@ class SparkSteps:
                                               ['numpy', 'pandas']
         :param bootstrap_requirements_yum: (list) Containing extra system requirements. Example:
                                                 ['unixODBC-devel', 'gcc-c++']
+        :param bootstrap_script: (str) Path to bash script to run before
         :param bucket: (str) s3 bucket where the EMR tasks will be copied to. Recommended to leave default.
         """
         self.default_args = default_args
@@ -46,24 +70,19 @@ class SparkSteps:
         self.bootstrap_requirements_python_with_version = bootstrap_requirements_python_with_version
         self.bootstrap_requirements_python_without_version = bootstrap_requirements_python_without_version
         self.bootstrap_requirements_yum = bootstrap_requirements_yum
+        self.bootstrap_script = bootstrap_script
         self.bootstrap_key = None
 
     def __enter__(self):
-        s = "#!/bin/bash\nset -e\nset -x\n"
-        if self.bootstrap_requirements_yum is not None:
-            s += "\nsudo yum -y install {}\n".format(' '.join(self.bootstrap_requirements_yum))
-
-        s += "sudo pip-3.6 install -U \\\nawscli \\\nboto3 \\"
-
-        if self.bootstrap_requirements_python_with_version is not None:
-            s += ('\n' + ' \\ \n'.join("{}=={}".format(key, val) for key, val in
-                                       self.bootstrap_requirements_python_with_version.items())) + ' \\'
-
-        if self.bootstrap_requirements_python_without_version is not None:
-            for package in self.bootstrap_requirements_python_without_version:
-                s += f'\n{package} \\'
-
-        self.bootstrap_key = f"bootstrap_scripts/{hashlib.sha1(bytes(s, 'utf-8')).hexdigest()}.sh"
+        if self.bootstrap_script is not None:
+            with open(self.bootstrap_script) as f:
+                s = f.read()
+        else:
+            s = None
+        s, self.bootstrap_key = create_bootstrap_script(self.bootstrap_requirements_yum,
+                                                        self.bootstrap_requirements_python_with_version,
+                                                        self.bootstrap_requirements_python_without_version,
+                                                        s)
 
         self.tasks = [
             UploadFiles(

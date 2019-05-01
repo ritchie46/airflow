@@ -27,7 +27,7 @@ services:
             # Comment out the line below on windows.
             - ./init:/init
         ports:
-            - "80:8080"
+            - "8080:8080"
         command: /init/entrypoint.sh
         healthcheck:
             test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]

@@ -114,7 +114,7 @@ for d in to_do_dates:
     # ad processing date, encode and write to S3
     log_list = ["%s processed on %s" % (d,datetime.date.today()) for d in done_dates]
     log_byte = str.encode("\r\n".join(log_list))
-    _ = obj.put(Body=log_byte)
+    _ = obj_s3.put(Body=log_byte)
 
 print('Finished dali_preprocess_json2parquet.py')
 exit()

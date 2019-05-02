@@ -88,6 +88,7 @@ for d in date_list:
         .dropDuplicates(["boxid", "timestamp", "value"]) \
         .withColumn("timestamp", F.col('timestamp').cast('timestamp')) \
         .withColumn('date', F.col('timestamp').cast('date'))
+        .withColumn("json_date_delay", F.datediff(F.lit(d), F.to_date("timestamp")))
         # .filter(F.col('timestamp').between(startdate_update, enddate_update - datetime.timedelta(minutes=15)))
 
     print("\t\tWriting parquet files ...")

@@ -68,8 +68,8 @@ obj_s3 = s3.Object(bucket, key)
 
 # retrieve from S3 dates that have been preprocessed and parse dates
 log_body = obj_s3.get()['Body'].read()
-log_byte = log_body.decode().split("\r\n")
-done_dates = [datetime.datetime.strptime(s[0:10],"%Y-%m-%d").date() for s in log_byte]
+log_string = log_body.decode().split("\r\n")
+done_dates = [datetime.datetime.strptime(s[0:10],"%Y-%m-%d").date() for s in log_string]
 
 # set date limits which need to be present and create range between them
 yester_date = datetime.date.today() - datetime.timedelta(days=1)
@@ -98,7 +98,7 @@ for d in to_do_dates:
         .select('boxid', 'channelid', 'timestamp', 'value') \
         .dropDuplicates(["boxid", "timestamp", "value"]) \
         .withColumn("timestamp", F.col('timestamp').cast('timestamp')) \
-        .withColumn('date', F.col('timestamp').cast('date'))
+        .withColumn('date', F.col('timestamp').cast('date'))\
         .withColumn("json_date_delay", F.datediff(F.lit(d), F.to_date("timestamp")))
         # .filter(F.col('timestamp').between(startdate_update, enddate_update - datetime.timedelta(minutes=15)))
 

@@ -31,6 +31,7 @@ def create_bootstrap_script(bootstrap_requirements_yum,
 class SparkSteps:
     def __init__(self, default_args, dag, instance_count=1, master_instance_type='m4.xlarge',
                  slave_instance_type='m4.xlarge', ec2_key_name='enx-ec2',
+                 subnet_id=None,
                  bootstrap_requirements_python_with_version=None,
                  bootstrap_requirements_python_without_version=None,
                  bootstrap_requirements_yum=None,
@@ -45,6 +46,8 @@ class SparkSteps:
         :param master_instance_type: (str) Type of ec2-machines. See: https://aws.amazon.com/ec2/instance-types/
         :param slave_instance_type: (str) Type of ec2-machines. See: https://aws.amazon.com/ec2/instance-types/
         :param ec2_key_name: (str) Name of the ec2 key. This allows you to ssh into the EMR cluster.
+        :param subnet_id: (str) The id of the subnet the emr cluster should be hosted.
+                                Note: 'subnet-bbc351f3' is connected to the NAT.
         :param bootstrap_requirements_python_with_version: (dict) Python libraries needed for the EMR tasks.
                                               { 'numpy': '1.15.4'
                                                 'psycopg2' : '0.9' }
@@ -64,8 +67,7 @@ class SparkSteps:
         self.ec2_key_name = ec2_key_name
         self.dag = dag
         self.tasks = []
-        self.find_subnet = None
-        self.cluster_creator = None
+        self.subnet_id = subnet_id
         self.job_count = 0
         self.bootstrap_requirements_python_with_version = bootstrap_requirements_python_with_version
         self.bootstrap_requirements_python_without_version = bootstrap_requirements_python_without_version
@@ -93,10 +95,10 @@ class SparkSteps:
                 local_files=[s],
                 file_type='str'
             ),
-
             FindSubnet(
                 task_id='find_subnet',
-                dag=self.dag
+                dag=self.dag,
+                pass_subnet=self.subnet_id
             ),
             EmrCreateJobFlowOperator(
                 task_id='create_EMR_cluster',

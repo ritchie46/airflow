@@ -216,3 +216,9 @@ class SparkSteps:
     def set_upstream(self, op):
         self.tasks[-2].set_upstream(op)
 
+    def __lshift__(self, other):
+        self.set_upstream(other)
+
+    def __rshift__(self, other):
+        self.set_downstream(other)
+

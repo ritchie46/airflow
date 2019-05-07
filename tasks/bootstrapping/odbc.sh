@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 set -x
 # https://github.com/mkleehammer/pyodbc/wiki/Connecting-to-SQL-Server-from-RHEL-or-Centos
 

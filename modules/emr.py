@@ -210,4 +210,9 @@ class SparkSteps:
         for i in range(1, len(self.tasks)):
             self.tasks[i - 1].set_downstream(self.tasks[i])
 
+    def set_downstream(self, op):
+        self.tasks[-2].set_downstream(op)
+
+    def set_upstream(self, op):
+        self.tasks[-2].set_upstream(op)
 

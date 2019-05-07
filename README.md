@@ -27,4 +27,10 @@ with SparkSteps(DEFAULT_ARGS, dag,
                 ) as ss:
 ```
 
+## ODBC driver
+A working ODBC driver (needed for `pyodbc`), takes extra bootstrapping. For this purpose the `SparkSteps` context, 
+needs to be started with a custom bootstrap script.
 
+```python
+with SparkSteps(DEFAULT_ARGS, dag, bootstrap_script='tasks/bootstrapping/odbc.sh') as ss:
+```

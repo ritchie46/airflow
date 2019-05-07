@@ -9,7 +9,7 @@ services:
 
     webserver:
         image: ritchie46/enx-airflow:0.3
-        restart: always
+        restart: "no"
         depends_on:
             - postgres
         environment:

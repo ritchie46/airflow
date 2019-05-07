@@ -1,0 +1,37 @@
+version: '2.1'
+services:
+    postgres:
+        image: postgres:9.6
+        environment:
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+
+    webserver:
+        image: ritchie46/enx-airflow:0.3
+        restart: "no"
+        depends_on:
+            - postgres
+        environment:
+            # Don't specify FERNET key in plain text in production.
+            - FERNET_KEY=qEmHuWobGHr2voNE06ab7QPX14QzUTxcpD1IFhepV-I=
+            - AWS_DEFAULT_REGION=eu-west-1
+            - AIRFLOW_USERNAME=dev
+            - AIRFLOW_PASSWORD=dev
+        volumes:
+            - ./dags:/usr/local/airflow/dags
+            - ./config:/config
+            - ./plugins:/usr/local/airflow/plugins
+            - ./tasks:/usr/local/airflow/tasks
+            - ~/.aws:/usr/local/airflow/.aws
+            - ./modules:/modules/modules
+            # Comment out the line below on windows.
+            - ./init:/init
+        ports:
+            - "8080:8080"
+        command: /init/entrypoint.sh
+        healthcheck:
+            test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+            interval: 30s
+            timeout: 30s
+            retries: 3

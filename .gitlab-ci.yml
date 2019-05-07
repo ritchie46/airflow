@@ -1,0 +1,28 @@
+image:
+  name: ritchie46/enx-airflow:latest
+  # https://gitlab.com/gitlab-org/gitlab-runner/issues/1170
+  entrypoint: [""]
+
+
+services:
+  - name: postgres:9.6
+    alias: postgres_service
+
+# needed to env vars for postgres db
+variables:
+  POSTGRES_USER: airflow
+  POSTGRES_PASSWORD: airflow
+  POSTGRES_DB: airflow
+  RUNNING_CI: "1"
+
+
+test:
+  script:
+    - export POSTGRES_HOST="$POSTGRES_SERVICE_PORT_5432_TCP_ADDR"
+    - export AIRFLOW_USERNAME=dev
+    - export AIRFLOW_PASSWORD=dev
+    - export AWS_DEFAULT_REGION=eu-west-1
+    - export AIRFLOW_HOME=$(pwd)
+    - init/entrypoint.sh
+
+

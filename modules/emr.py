@@ -15,7 +15,7 @@ def create_bootstrap_script(bootstrap_requirements_yum,
     if bootstrap_requirements_yum is not None:
         s += "\nsudo yum -y install {}\n".format(' '.join(bootstrap_requirements_yum))
 
-    s += "sudo pip-3.6 install -U \\\nawscli \\\nboto3 \\"
+    s += "\nsudo pip-3.6 install -U \\\nawscli \\\nboto3 \\"
 
     if bootstrap_requirements_python_with_version is not None:
         s += ('\n' + ' \\ \n'.join("{}=={}".format(key, val) for key, val in

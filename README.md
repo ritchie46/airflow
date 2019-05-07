@@ -45,3 +45,15 @@ Note that this is a private subnet, which means that there is no inbound traffic
 ```python
 with SparkSteps(DEFAULT_ARGS, dag, subnet_id='subnet-bbc351f3') as ss:
 ```
+
+
+## Connection secrets
+Connections can be added via the UI or programmatically. In DAGs we can access the connection information via
+airflow hooks.
+
+```python
+from airflow.hooks.base_hook import BaseHook
+pw = BaseHook.get_connection('example_connection').password
+
+some_operator(host='secret', password=pw)
+```

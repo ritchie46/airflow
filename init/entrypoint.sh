@@ -42,6 +42,7 @@ fi
 
 airflow initdb
 python /init/inituser.py
+python /init/example_population_of_db.py
 
 if [[ -z ${RUNNING_CI} ]]; then
     echo "start scheduler & webserver..."

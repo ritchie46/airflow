@@ -5,6 +5,7 @@ from airflow.contrib.operators.emr_terminate_job_flow_operator import EmrTermina
 # custom operator plugins
 from airflow.operators import EmrStepSensor, UploadFiles, FindSubnet
 import hashlib
+import os
 
 
 def create_bootstrap_script(bootstrap_requirements_yum,
@@ -160,7 +161,7 @@ class SparkSteps:
                 'ActionOnFailure': action_on_failure,
                 'HadoopJarStep': {
                     'Jar': 'command-runner.jar',
-                    'Args': ['aws', 's3', 'cp', f"s3://{self.bucket}/{key}", '/home/hadoop/']
+                    'Args': ['aws', 's3', 'cp', f"s3://{self.bucket}/{os.path.join('tasks', key)}", '/home/hadoop/']
                 }
             },
             {
@@ -168,7 +169,7 @@ class SparkSteps:
                 'ActionOnFailure': action_on_failure,
                 'HadoopJarStep': {
                     'Jar': 'command-runner.jar',
-                    'Args': ['spark-submit', f"/home/hadoop/{key}"] + list(jobargs)
+                    'Args': ['spark-submit', f"/home/hadoop/{os.path.basename(key)}"] + list(jobargs)
                 }
             }
 
@@ -179,7 +180,7 @@ class SparkSteps:
                 task_id=f'upload_scripts_{self.job_count}',
                 local_files=[local_file],
                 bucket=self.bucket,
-                keys=[key],
+                keys=[os.path.join('tasks', key)],
                 replace=True,
                 dag=self.dag
             ),

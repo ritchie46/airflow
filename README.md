@@ -37,7 +37,7 @@ with SparkSteps(DEFAULT_ARGS, dag, bootstrap_script='tasks/bootstrapping/odbc.sh
 
 
 ## Static IP-address (for whitelisting)
-If 3d parties need to specifically whitelist our AWS services, we need to have a static IP adress. I won't bore you
+If 3rd parties need to specifically whitelist our AWS services, we need to have a static IP adress. I won't bore you
 with the technicalities, but this can be achieved by specifying the subnet id when starting a `SparkSteps` context.
 
 Note that this is a private subnet, which means that there is no inbound traffic possible so als no ssh traffic.

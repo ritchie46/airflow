@@ -14,7 +14,7 @@ DEFAULT_ARGS = {
 
 dag = DAG(DAG_NAME, schedule_interval='@once', default_args=DEFAULT_ARGS)
 
-with SparkSteps(DEFAULT_ARGS, dag, instance_count=1, subnet_id='subnet-bbc351f3') as ss:
+with SparkSteps(DEFAULT_ARGS, dag, instance_count=1) as ss:
 
     ss.add_spark_job(local_file='tasks/development/diagnostics.py', key='diagnostics.py',
                      jobargs=['2019', '4', '8'], action_on_failure='CANCEL_AND_WAIT')

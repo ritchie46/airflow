@@ -155,13 +155,13 @@ class LogDates():
 
 
 # define location and filename of log
-URL_parquet = "s3://enx-datascience-dali-dq/Bram-dali-data-preprocessed_4"
-log_filename = "log_preprocessing.txt"
+URL_parquet = "s3://enx-datascience-trusted/dali-sensordata"
+# log_filename = "log_preprocessing.txt"
 bottom_date = datetime.date(2019, 2, 19)
 
 
 # make object (and s3 file) for logging dates
-log_obj = LogDates(URL_parquet, True, log_filename)
+log_obj = LogDates(URL_parquet, True)
 if log_obj.check_file_exists()==False: log_obj.clean_file()
 
 # retrieve from S3 dates that have been preprocessed

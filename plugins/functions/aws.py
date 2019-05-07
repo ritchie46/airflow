@@ -20,7 +20,7 @@ class FindSubnet(BaseOperator):
         self.pass_subnet = pass_subnet
 
     def execute(self, context):
-        if self.pass_subnet is None:
+        if self.pass_subnet is not None:
             return self.pass_subnet
         client = boto3.client('ec2')
         return client.describe_subnets()['Subnets'][self.subnet_index]['SubnetId']

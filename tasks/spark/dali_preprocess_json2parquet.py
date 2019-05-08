@@ -2,6 +2,7 @@ from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 import datetime
 from pyspark.sql import functions as F
+from urllib.parse import urlparse
 import platform
 import sys
 import re
@@ -13,6 +14,9 @@ print("Running dali_preprocess_json2parquet.py ...")
 conf = SparkConf()
 sc = SparkContext(conf = conf)
 spark = SQLContext(sc)
+
+# setup client s3 bucket
+client = boto3.client("s3")
 
 # import datetime
 # # import boto3
@@ -153,15 +157,27 @@ class LogDates():
         dates = list(set(self.get_dates()) - set(dates))
         self.write_dates(dates)
 
+# check if s3 key exists
+def s3_key_exists(date):
+    try:
+        parsed = urlparse(URL_target)
+        bucket = parsed.netloc
+        key = parsed.path.lstrip("/") + "/" + "date=%s" % date
+        _ = client.list_objects(Bucket=bucket, Prefix=key)["Contents"]
+        # Key does exist
+        return True
+    except:
+        # Key does not exist
+        return False
 
 # define location and filename of log
-URL_parquet = "s3://enx-datascience-trusted/dali-sensordata"
+URL_target = "s3://enx-datascience-trusted/dali-sensordata"
 # log_filename = "log_preprocessing.txt"
 bottom_date = datetime.date(2019, 2, 19)
 
 
 # make object (and s3 file) for logging dates
-log_obj = LogDates(URL_parquet, True)
+log_obj = LogDates(URL_target, True)
 if log_obj.check_file_exists()==False: log_obj.clean_file()
 
 # retrieve from S3 dates that have been preprocessed
@@ -199,10 +215,13 @@ for d in to_do_dates:
 
     print("\t\tWriting parquet files ...")
     df.repartition("boxid") \
-        .write.parquet(URL_parquet, partitionBy='date', mode='append')
+        .write.parquet(URL_target, partitionBy='date', mode='append')
 
-    # add just preprocessed date
-    log_obj.add_dates(d)
+    # add just processed date
+    if s3_key_exists(d):
+        log_obj.add_dates(d)
+    else:
+        print("\t\tNo output result for %s!" % d)
 
 print('Finished dali_preprocess_json2parquet.py')
 exit()

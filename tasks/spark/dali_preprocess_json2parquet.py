@@ -172,7 +172,7 @@ def s3_key_exists(date):
 
 # define location and filename of log
 URL_target = "s3://enx-datascience-trusted/dali-sensordata"
-# log_filename = "log_preprocessing.txt"
+log_filename = "log_preprocessing.txt"
 bottom_date = datetime.date(2019, 2, 19)
 
 
@@ -207,7 +207,7 @@ for d in to_do_dates:
     print("\t\tPreprocessing data ...")
     df = df \
         .select('boxid', 'channelid', 'timestamp', 'value') \
-        .dropDuplicates(["boxid", "timestamp", "value"]) \
+        .dropDuplicates(["boxid", "timestamp", "channelid", "value"]) \
         .withColumn("timestamp", F.col('timestamp').cast('timestamp')) \
         .withColumn('date', F.col('timestamp').cast('date'))\
         .withColumn("json_date_delay", F.datediff(F.lit(d), F.to_date("timestamp")))

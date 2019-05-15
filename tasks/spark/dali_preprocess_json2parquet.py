@@ -9,6 +9,16 @@ import re
 import boto3
 # import logs3 first need a clean way to upload libs in DAG
 
+''' This script unpacks the DALI json-files, partitioned per measurement-date in parquet-format and saves metadata of this process.
+
+json files are stored structured per year/month/day. 
+- Per day a json file is read and unpacked.
+- The content is parsed to extract the timestamp of the data.
+- The content is saved in parquet format (partitioned per date of the parsed timestamp) in dali-sensordata.
+- Metadata of this proces is saved in parquet format in pre-dali.
+
+'''
+
 print("Running dali_preprocess_json2parquet.py ...")
 
 conf = SparkConf()
@@ -77,6 +87,8 @@ class LogDates():
 
     def date_range(self, start_date, end_date):
         ''' This method makes a date range between start and end date
+
+        iyiuyiyi
 
         :param (str or datetime.date) start_date: the start date of the range given as string or datetime.date
         :param (str or datetime.date) end_date: the start date of the range given as string or datetime.date

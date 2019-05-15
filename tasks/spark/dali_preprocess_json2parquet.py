@@ -170,15 +170,17 @@ def s3_key_exists(date):
         # Key does not exist
         return False
 
+
 # define location and filename of log
 URL_target = "s3://enx-datascience-trusted/dali-sensordata"
 log_filename = "log_preprocessing.txt"
 bottom_date = datetime.date(2019, 2, 19)
 
+URL_pre = "s3://enx-datascience-trusted/dali-pre"
 
 # make object (and s3 file) for logging dates
 log_obj = LogDates(URL_target, True)
-if log_obj.check_file_exists()==False: log_obj.clean_file()
+if log_obj.check_file_exists() == False: log_obj.clean_file()
 
 # retrieve from S3 dates that have been preprocessed
 done_dates = log_obj.get_dates()
@@ -196,26 +198,33 @@ _ = [print("\t\t\t\t\t\t%s" % td) for td in to_do_dates]
 for d in to_do_dates:
     print("\tprocessing: %s" % d)
 
-    # datetime.datetime.combine(last_up_date, datetime.time.min)
-
-    # startdate_update = datetime.datetime(2019, 4, 22, 0, 0)
-    # enddate_update = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-
     print("\t\tReading json files ...")
-    df = spark.read.json("s3://enxt-dl-raw/salvador/sensordata/readings/year=%04d/month=%02d/day=%02d/*" % (d.year,d.month,d.day))
+    df = spark.read.json(
+        "s3://enxt-dl-raw/salvador/sensordata/readings/year=%04d/month=%02d/day=%02d/*" % (d.year, d.month, d.day))
 
     print("\t\tPreprocessing data ...")
     df = df \
         .select('boxid', 'channelid', 'timestamp', 'value') \
         .dropDuplicates(["boxid", "timestamp", "channelid", "value"]) \
         .withColumn("timestamp", F.col('timestamp').cast('timestamp')) \
-        .withColumn('date', F.col('timestamp').cast('date'))\
+        .withColumn('date', F.col('timestamp').cast('date')) \
         .withColumn("json_date_delay", F.datediff(F.lit(d), F.to_date("timestamp")))
-        # .filter(F.col('timestamp').between(startdate_update, enddate_update - datetime.timedelta(minutes=15)))
+    # .filter(F.col('timestamp').between(startdate_update, enddate_update - datetime.timedelta(minutes=15)))
 
-    print("\t\tWriting parquet files ...")
+    print("\t\tWriting parquet files data...")
     df.repartition("boxid") \
-        .write.parquet(URL_target, partitionBy='date', mode='append')
+            .write.parquet(URL_target, partitionBy='date', mode='append')
+
+    # create pre file with timestamps
+    print("\t\tAppending parquet files pre...")
+    df_pre_d = df.groupBy("boxid", "channelid") \
+        .agg(F.min(df.timestamp).alias('timestamp_first_in_file'), \
+             F.max(df.timestamp).alias('timestamp_last_in_file')) \
+        .withColumn("date_trusted_file", F.lit(d)) \
+        .withColumn("timestamp_trusted_to_pre", F.lit(datetime.datetime.now())) \
+        .withColumn('date_last_in_file', F.col('timestamp_last_in_file').cast('date'))
+    df_pre_d.repartition("boxid") \
+        .write.parquet(URL_pre, partitionBy='date_last_in_file', mode='append')
 
     # add just processed date
     if s3_key_exists(d):

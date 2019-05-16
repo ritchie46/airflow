@@ -224,14 +224,16 @@ for d in to_do_dates:
     # .filter(F.col('timestamp').between(startdate_update, enddate_update - datetime.timedelta(minutes=15)))
 
     print("\t\tWriting parquet files data...")
-    df.repartition("boxid") \
+    df_to_write = df
+    df_to_write.repartition("boxid") \
             .write.parquet(URL_target, partitionBy='date', mode='append')
 
     # create pre file with timestamps
     print("\t\tAppending parquet files pre...")
-    df_pre_d = df.groupBy("boxid", "channelid") \
-        .agg(F.min(df.timestamp).alias('timestamp_first_in_file'), \
-             F.max(df.timestamp).alias('timestamp_last_in_file')) \
+    df_pre_d = df.select('boxid', 'channelid', 'timestamp')
+    df_pre_d = df_pre_d.groupBy("boxid", "channelid") \
+        .agg(F.min(df_pre_d.timestamp).alias('timestamp_first_in_file'), \
+             F.max(df_pre_d.timestamp).alias('timestamp_last_in_file')) \
         .withColumn("date_trusted_file", F.lit(d)) \
         .withColumn("timestamp_trusted_to_pre", F.lit(datetime.datetime.now())) \
         .withColumn('date_last_in_file', F.col('timestamp_last_in_file').cast('date'))

@@ -231,14 +231,13 @@ for d in to_do_dates:
     # create pre file with timestamps
     print("\t\tAppending parquet files pre...")
     df_pre_d = df.select('boxid', 'channelid', 'timestamp')
-    df_pre_d = df_pre_d.groupBy("boxid", "channelid") \
+    df_pre_d = df_pre_d.groupBy("boxid", "channelid", "date") \
         .agg(F.min(df_pre_d.timestamp).alias('timestamp_first_in_file'), \
              F.max(df_pre_d.timestamp).alias('timestamp_last_in_file')) \
         .withColumn("date_trusted_file", F.lit(d)) \
-        .withColumn("timestamp_trusted_to_pre", F.lit(datetime.datetime.now())) \
-        .withColumn('date_last_in_file', F.col('timestamp_last_in_file').cast('date'))
+        .withColumn("timestamp_trusted_to_pre", F.lit(datetime.datetime.now())) 
     df_pre_d.repartition("boxid") \
-        .write.parquet(URL_pre, partitionBy='date_last_in_file', mode='append')
+        .write.parquet(URL_pre, partitionBy='date', mode='append')
 
     # add just processed date
     if s3_key_exists(d):

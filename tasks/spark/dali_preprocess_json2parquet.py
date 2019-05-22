@@ -212,7 +212,7 @@ for d in to_do_dates:
 
     print("\t\tReading json files ...")
     df = spark.read.json(
-        "s3://enxt-dl-raw/salvador/sensordata/readings/year=%04d/month=%02d/day=%02d/*" % (d.year, d.month, d.day))
+        "s3://enx-dl-raw/salvador/sensordata/readings/year=%04d/month=%02d/day=%02d/*" % (d.year, d.month, d.day))
 
     print("\t\tPreprocessing data ...")
     df = df \
@@ -239,11 +239,7 @@ for d in to_do_dates:
     df_pre_d.repartition("boxid") \
         .write.parquet(URL_pre, partitionBy='date', mode='append')
 
-    # add just processed date
-    if s3_key_exists(d):
-        log_obj.add_dates(d)
-    else:
-        print("\t\tNo output result for %s!" % d)
+    log_obj.add_dates(d)
 
 print('Finished dali_preprocess_json2parquet.py')
 exit()

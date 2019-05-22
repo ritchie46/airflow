@@ -36,6 +36,7 @@ RUN set -ex \
         netcat \
         curl \
         rsync \
+        openssh-server \
     && useradd -ms /bin/bash -d ${AIRFLOW_HOME} airflow \
     && pip install apache-airflow[crypto,postgres,hive,jdbc]==${AIRFLOW_VERSION} \
     && pip install -r /requirements.txt \

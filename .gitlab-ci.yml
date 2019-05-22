@@ -3,6 +3,9 @@ image:
   # https://gitlab.com/gitlab-org/gitlab-runner/issues/1170
   entrypoint: [""]
 
+stages:
+  - test
+  - deploy
 
 services:
   - name: postgres:9.6
@@ -17,6 +20,7 @@ variables:
 
 
 test:
+  stage: test
   script:
     - export POSTGRES_HOST="$POSTGRES_SERVICE_PORT_5432_TCP_ADDR"
     - export AIRFLOW_USERNAME=dev
@@ -26,3 +30,9 @@ test:
     - init/entrypoint.sh
 
 
+deploy:
+  stage: deploy
+  only:
+    - production
+  script:
+    - ./deploy.sh

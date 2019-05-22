@@ -19,7 +19,7 @@ def create_bootstrap_script(bootstrap_requirements_yum,
     s += "\nsudo pip-3.6 install -U \\\nawscli \\\nboto3 \\"
 
     if bootstrap_requirements_python_with_version is not None:
-        s += ('\n' + ' \\ \n'.join("{}=={}".format(key, val) for key, val in
+        s += ('\n' + ' \\\n'.join("{}=={}".format(key, val) for key, val in
                                    bootstrap_requirements_python_with_version.items())) + ' \\'
 
     if bootstrap_requirements_python_without_version is not None:

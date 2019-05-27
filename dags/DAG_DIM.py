@@ -3,7 +3,6 @@ from airflow import DAG
 from modules.emr import SparkSteps
 from airflow.models import Variable
 
-
 DAG_NAME = 'DAG_DIM'
 
 DEFAULT_ARGS = {
@@ -14,11 +13,11 @@ DEFAULT_ARGS = {
     'email_on_retry': False,
 }
 
-dag = DAG(DAG_NAME, schedule_interval=None, default_args=DEFAULT_ARGS)
+dag = DAG(DAG_NAME, schedule_interval='@once', default_args=DEFAULT_ARGS)
 
 dag_config = Variable.get("variables_dalidq_2.0", deserialize_json=True)
 
-gitlab_url = "git+https://{}:{}@{}".\
+gitlab_url = "git+https://{}:{}@{}". \
     format(dag_config['gitlab_username'], dag_config['gitlab_token'], dag_config['gitlab_host'])
 
 with SparkSteps(DEFAULT_ARGS, dag, instance_count=1,
@@ -29,9 +28,14 @@ with SparkSteps(DEFAULT_ARGS, dag, instance_count=1,
                 bootstrap_requirements_python_without_version=[gitlab_url]) as ss:
     ss.add_spark_job(local_file='tasks/spark/dim_box.py', key='dim_box.py',
                      action_on_failure='CANCEL_AND_WAIT',
-                     jobargs=[dag_config['S3_URL_DIM_Boxes'], dag_config['database_SDS'],
+                     jobargs=[dag_config['S3_URL_DIM_Boxes'], dag_config['S3_URL_pre'],
+                              dag_config['S3_URL_Meta_Boxes'], dag_config['database_SDS'],
                               dag_config['username_SDS'], dag_config['password_SDS']])
     ss.add_spark_job(local_file='tasks/spark/dim_channels.py', key='dim_channel.py',
                      action_on_failure='CANCEL_AND_WAIT',
                      jobargs=[dag_config['S3_URL_DIM_Channels'], dag_config['database_SDS'],
                               dag_config['username_SDS'], dag_config['password_SDS']])
+    ss.add_spark_job(local_file='tasks/spark/pre_boxchannel.py', key='pre_boxchannel.py',
+                     action_on_failure='CANCEL_AND_WAIT',
+                     jobargs=[dag_config['S3_URL_DIM_Boxes'], dag_config['S3_URL_DIM_Channels'],
+                              dag_config['S3_URL_BoxChannel']])

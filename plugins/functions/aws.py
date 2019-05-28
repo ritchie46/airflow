@@ -2,6 +2,7 @@ from airflow.hooks.S3_hook import S3Hook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 import boto3
+from datetime import datetime
 
 
 class FindSubnet(BaseOperator):
@@ -52,3 +53,65 @@ class UploadFiles(BaseOperator):
                 s3.load_string(f, key, self.bucket, self.replace)
             else:
                 s3.load_file(f, key, self.bucket, self.replace)
+
+
+class AWSBatchRegisterJobDefinition(BaseOperator):
+
+    @apply_defaults
+    def __init__(self, image, command=None, vcpus=1, memory=1024, job_role_arn=None, environment=None, *args, **kwargs):
+        """
+
+        :param image: (str) The image used to start a container.
+        :param command: (list) The command that is passed to the container.
+                               Example: 'echo hello world' -> ["echo", "hello", "world"]
+        :param vcpus: (int) The number of vCPUs reserved for the container.
+        :param memory: (int) The hard limit (in MiB) of memory to present to the container.
+        :param job_role_arn: The Amazon Resource Name (ARN) of the IAM role that the container can assume
+                           for AWS permissions.
+        :param environment: (list) Containing key value environment variables in dictionary form.
+        """
+        super().__init__(*args, **kwargs)
+        self.job_definition_name = f"airflow-batch-{str(datetime.now()).replace(' ', '_')}"
+        self.image = image
+        self.command = command
+        self.vcpus = vcpus
+        self.memory = memory
+        self.job_role_arn = job_role_arn
+        self.environment = environment
+
+    def execute(self, context):
+        client = boto3.client('batch')
+        client.register_job_definition(
+            jobDefinitionName=self.job_definition_name,
+            image=self.image,
+            type='container',
+            jobRoleArn=self.job_role_arn,
+            vcpus=self.vcpus,
+            memory=self.memory,
+            environment=self.environment
+        )
+
+
+class AWSBatchDeregisterJobDefinition(BaseOperator):
+
+    def __init__(self, job_definition_name, *args, **kwargs):
+        """
+        :param job_definition_name: (str)
+        """
+        super().__init__(*args, **kwargs)
+        self.job_definition_name = job_definition_name
+
+    def execute(self, context):
+        client = boto3.client('batch')
+        client.deregister_job_definition(
+            jobDefinition=self.job_definition_name
+        )
+
+
+class AWSBatchSubmitJob(BaseOperator):
+
+    def __init__(self,  *args, **kwargs):
+        """
+
+        """
+        super().__init__(*args, **kwargs)

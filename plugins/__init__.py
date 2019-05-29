@@ -1,6 +1,6 @@
 from airflow.plugins_manager import AirflowPlugin
 from .sensors import aws as aws_sensors
-from .functions import aws as aws_functions
+from .operators import aws as aws_operators
 
 
 class AWSPlugin(AirflowPlugin):
@@ -9,7 +9,10 @@ class AWSPlugin(AirflowPlugin):
         aws_sensors.EmrStepSensor
     ]
     operators = [
-        aws_functions.FindSubnet,
-        aws_functions.UploadFiles
+        aws_operators.FindSubnet,
+        aws_operators.UploadFiles,
+        aws_operators.AWSBatchRegisterJobDefinition,
+        aws_operators.AWSBatchDeregisterJobDefinition,
+        aws_operators.AWSBatchOperatorTemplated
     ]
 

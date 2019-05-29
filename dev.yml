@@ -20,7 +20,7 @@ services:
             - AWS_DEFAULT_REGION=eu-west-1
             - AIRFLOW_USERNAME=dev
             - AIRFLOW_PASSWORD=dev
-            - PRODUCTION=0
+            - ENX_PRODUCTION=0
         volumes:
             - ./dags:/usr/local/airflow/dags
             - ./config:/config
@@ -30,6 +30,7 @@ services:
             - ./modules:/modules/modules
             # Comment out the line below on windows.
             - ./init:/init
+
         ports:
             - "8080:8080"
         command: /init/entrypoint.sh

@@ -57,3 +57,35 @@ pw = BaseHook.get_connection('example_connection').password
 
 some_operator(host='secret', password=pw)
 ```
+
+## Variables
+Within your DAGs you can access (secret) variables such as connection strings and passwords. 
+- create locally a JSON file, for instance `variables.json` with the following content:
+```
+{
+    env_variables:{
+        "host":"mydatabase.net", 
+        "key":"jkadjflkadjlf"
+        }
+}
+```
+
+- Upload this JSON file to the UI of Airflow (tab Admin)
+
+- Add the following lines to your DAG (this is an example, you should modify it according to your requirements)
+
+```
+from airflow.models import Variable
+
+dag_config = Variable.get("env_variables", deserialize_json=True)
+db_host = dag_config['host']
+db_key = dag_config['key']
+
+
+with SparkSteps(DEFAULT_ARGS, dag, instance_count=1) as ss:
+    ss.add_spark_job(local_file=local_file, key=local_file, jobargs=[db_host, db_key])
+
+```
+
+
+

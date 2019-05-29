@@ -4,7 +4,6 @@ from modules.emr import SparkSteps
 from airflow.models import Variable
 import os
 
-
 DAG_NAME = 'DAG_DIM'
 
 DEFAULT_ARGS = {

@@ -1,7 +1,5 @@
 from datetime import datetime
-
 from airflow import DAG
-
 from modules.emr import SparkSteps
 
 DAG_NAME = 'DAG_dali_preprocess_json2parquet'

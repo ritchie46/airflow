@@ -1,6 +1,7 @@
 from airflow.hooks.S3_hook import S3Hook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
+from airflow.contrib.operators.awsbatch_operator import AWSBatchOperator
 import boto3
 from datetime import datetime
 
@@ -71,7 +72,7 @@ class AWSBatchRegisterJobDefinition(BaseOperator):
         :param environment: (list) Containing key value environment variables in dictionary form.
         """
         super().__init__(*args, **kwargs)
-        self.job_definition_name = f"airflow-batch-{str(datetime.now()).replace(' ', '_')}"
+        self.job_definition_name = f"airflow-batch-{str(datetime.now().timestamp()).replace('.', '-')}"
         self.image = image
         self.command = command
         self.vcpus = vcpus
@@ -79,20 +80,30 @@ class AWSBatchRegisterJobDefinition(BaseOperator):
         self.job_role_arn = job_role_arn
         self.environment = environment
 
+        self.container_kwargs = dict()
+        if job_role_arn is not None:
+            self.container_kwargs['jobRoleArn'] = job_role_arn
+        if environment is not None:
+            self.container_kwargs['environment'] = environment
+
     def execute(self, context):
         client = boto3.client('batch')
         client.register_job_definition(
             jobDefinitionName=self.job_definition_name,
-            image=self.image,
             type='container',
-            jobRoleArn=self.job_role_arn,
-            vcpus=self.vcpus,
-            memory=self.memory,
-            environment=self.environment
+            containerProperties=dict(
+                image=self.image,
+                command=self.command,
+                vcpus=self.vcpus,
+                memory=self.memory,
+                **self.container_kwargs
+            )
         )
+        return self.job_definition_name
 
 
 class AWSBatchDeregisterJobDefinition(BaseOperator):
+    template_fields = ('job_definition_name', )
 
     def __init__(self, job_definition_name, *args, **kwargs):
         """
@@ -108,10 +119,9 @@ class AWSBatchDeregisterJobDefinition(BaseOperator):
         )
 
 
-class AWSBatchSubmitJob(BaseOperator):
+class AWSBatchOperatorTemplated(AWSBatchOperator):
+    template_fields = ('overrides', 'job_name', 'job_definition')
 
-    def __init__(self,  *args, **kwargs):
-        """
-
-        """
+    @apply_defaults
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -2,17 +2,31 @@ from pyspark import SparkConf, SparkContext
 from pyspark.sql import SQLContext
 import datetime
 from pyspark.sql import functions as F
+from urllib.parse import urlparse
 import platform
 import sys
 import re
 import boto3
 # import logs3 first need a clean way to upload libs in DAG
 
+''' This script unpacks the DALI json-files, partitioned per measurement-date in parquet-format and saves metadata of this process.
+
+json files are stored structured per year/month/day. 
+- Per day a json file is read and unpacked.
+- The content is parsed to extract the timestamp of the data.
+- The content is saved in parquet format (partitioned per date of the parsed timestamp) in dali-sensordata.
+- Metadata of this proces is saved in parquet format in pre-dali.
+
+'''
+
 print("Running dali_preprocess_json2parquet.py ...")
 
 conf = SparkConf()
 sc = SparkContext(conf = conf)
 spark = SQLContext(sc)
+
+# setup client s3 bucket
+client = boto3.client("s3")
 
 # import datetime
 # # import boto3
@@ -73,6 +87,8 @@ class LogDates():
 
     def date_range(self, start_date, end_date):
         ''' This method makes a date range between start and end date
+
+        iyiuyiyi
 
         :param (str or datetime.date) start_date: the start date of the range given as string or datetime.date
         :param (str or datetime.date) end_date: the start date of the range given as string or datetime.date
@@ -153,16 +169,30 @@ class LogDates():
         dates = list(set(self.get_dates()) - set(dates))
         self.write_dates(dates)
 
+# check if s3 key exists
+def s3_key_exists(date):
+    try:
+        parsed = urlparse(URL_target)
+        bucket = parsed.netloc
+        key = parsed.path.lstrip("/") + "/" + "date=%s" % date
+        _ = client.list_objects(Bucket=bucket, Prefix=key)["Contents"]
+        # Key does exist
+        return True
+    except:
+        # Key does not exist
+        return False
+
 
 # define location and filename of log
-URL_parquet = "s3://enx-datascience-trusted/dali-sensordata"
+URL_target = "s3://enx-datascience-trusted/dali-sensordata"
 log_filename = "log_preprocessing.txt"
 bottom_date = datetime.date(2019, 2, 19)
 
+URL_pre = "s3://enx-datascience-trusted/dali-pre"
 
 # make object (and s3 file) for logging dates
-log_obj = LogDates(URL_parquet, True, log_filename)
-if log_obj.check_file_exists()==False: log_obj.clean_file()
+log_obj = LogDates(URL_target, True)
+if log_obj.check_file_exists() == False: log_obj.clean_file()
 
 # retrieve from S3 dates that have been preprocessed
 done_dates = log_obj.get_dates()
@@ -180,28 +210,35 @@ _ = [print("\t\t\t\t\t\t%s" % td) for td in to_do_dates]
 for d in to_do_dates:
     print("\tprocessing: %s" % d)
 
-    # datetime.datetime.combine(last_up_date, datetime.time.min)
-
-    # startdate_update = datetime.datetime(2019, 4, 22, 0, 0)
-    # enddate_update = datetime.datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-
     print("\t\tReading json files ...")
-    df = spark.read.json("s3://enxt-dl-raw/salvador/sensordata/readings/year=%04d/month=%02d/day=%02d/*" % (d.year,d.month,d.day))
+    df = spark.read.json(
+        "s3://enx-dl-raw/salvador/sensordata/readings/year=%04d/month=%02d/day=%02d/*" % (d.year, d.month, d.day))
 
     print("\t\tPreprocessing data ...")
     df = df \
         .select('boxid', 'channelid', 'timestamp', 'value') \
         .dropDuplicates(["boxid", "timestamp", "channelid", "value"]) \
         .withColumn("timestamp", F.col('timestamp').cast('timestamp')) \
-        .withColumn('date', F.col('timestamp').cast('date'))\
+        .withColumn('date', F.col('timestamp').cast('date')) \
         .withColumn("json_date_delay", F.datediff(F.lit(d), F.to_date("timestamp")))
-        # .filter(F.col('timestamp').between(startdate_update, enddate_update - datetime.timedelta(minutes=15)))
+    # .filter(F.col('timestamp').between(startdate_update, enddate_update - datetime.timedelta(minutes=15)))
 
-    print("\t\tWriting parquet files ...")
-    df.repartition("boxid") \
-        .write.parquet(URL_parquet, partitionBy='date', mode='append')
+    print("\t\tWriting parquet files data...")
+    df_to_write = df
+    df_to_write.repartition("boxid") \
+            .write.parquet(URL_target, partitionBy='date', mode='append')
 
-    # add just preprocessed date
+    # create pre file with timestamps
+    print("\t\tAppending parquet files pre...")
+    df_pre_d = df.select('boxid', 'channelid', 'timestamp', 'date')
+    df_pre_d = df_pre_d.groupBy("boxid", "channelid", "date") \
+        .agg(F.min(df_pre_d.timestamp).alias('timestamp_first_in_file'), \
+             F.max(df_pre_d.timestamp).alias('timestamp_last_in_file')) \
+        .withColumn("date_trusted_file", F.lit(d)) \
+        .withColumn("timestamp_trusted_to_pre", F.lit(datetime.datetime.now()))
+    df_pre_d.repartition("boxid") \
+        .write.parquet(URL_pre, partitionBy='date', mode='append')
+
     log_obj.add_dates(d)
 
 print('Finished dali_preprocess_json2parquet.py')

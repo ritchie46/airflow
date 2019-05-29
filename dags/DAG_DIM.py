@@ -16,7 +16,7 @@ DEFAULT_ARGS = {
 }
 
 
-if os.environ.get('ENX_PRODUCTION', 1):
+if os.environ.get('ENX_PRODUCTION', '1') == '1':
     dag = DAG(DAG_NAME, schedule_interval=None, default_args=DEFAULT_ARGS)
 
     dag_config = Variable.get("variables_dalidq_2.0", deserialize_json=True)

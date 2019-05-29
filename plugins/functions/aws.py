@@ -7,16 +7,21 @@ import boto3
 class FindSubnet(BaseOperator):
 
     @apply_defaults
-    def __init__(self, subnet_index=0, *args, **kwargs):
+    def __init__(self, subnet_index=0, pass_subnet=None, *args, **kwargs):
         """
         Retrieve a subnet id in you .aws region.
 
         :param subnet_index: The index of the subnet you want to return. 0 is the first subnet.
+        :param pass_subnet: (str) A subnet Id. Can be used to pass a subnet through if a certain dag structure uses
+                                  FindSubnet, but wants to be able to pass a subnet id.
         """
         super().__init__(*args, **kwargs)
         self.subnet_index = subnet_index
+        self.pass_subnet = pass_subnet
 
     def execute(self, context):
+        if self.pass_subnet is not None:
+            return self.pass_subnet
         client = boto3.client('ec2')
         return client.describe_subnets()['Subnets'][self.subnet_index]['SubnetId']
 

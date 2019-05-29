@@ -1,9 +1,9 @@
-import airflow
 from airflow import models, settings
 from airflow.contrib.auth.backends.password_auth import PasswordUser
 import os
 user = PasswordUser(models.User())
 user.username = os.environ['AIRFLOW_USERNAME']
+user.superuser = True
 
 print('Made user', user.username)
 

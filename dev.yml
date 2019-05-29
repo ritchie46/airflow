@@ -6,13 +6,16 @@ services:
             - POSTGRES_USER=airflow
             - POSTGRES_PASSWORD=airflow
             - POSTGRES_DB=airflow
+        ports:
+          - "5432:5432"
 
     webserver:
         image: ritchie46/enx-airflow:0.3
-        restart: always
+        restart: "no"
         depends_on:
             - postgres
         environment:
+            # Don't specify FERNET key in plain text in production.
             - FERNET_KEY=qEmHuWobGHr2voNE06ab7QPX14QzUTxcpD1IFhepV-I=
             - AWS_DEFAULT_REGION=eu-west-1
             - AIRFLOW_USERNAME=dev

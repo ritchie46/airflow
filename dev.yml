@@ -20,6 +20,7 @@ services:
             - AWS_DEFAULT_REGION=eu-west-1
             - AIRFLOW_USERNAME=dev
             - AIRFLOW_PASSWORD=dev
+            - PRODUCTION=0
         volumes:
             - ./dags:/usr/local/airflow/dags
             - ./config:/config

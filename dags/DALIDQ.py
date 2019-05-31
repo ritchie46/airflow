@@ -12,15 +12,14 @@ DAG_NAME = 'DALIDQ'
 DEFAULT_ARGS = {
     'owner': 'datascienceteam1',
     'depends_on_past': False,
-    'start_date': datetime(2019, 5, 27, tzinfo=local_tz),
+    'start_date': datetime(2019, 5, 31, tzinfo=local_tz),
     'email_on_failure': False,
-    'email_on_retry': False,
-    'schedule_interval': '0 3 * * *',
+    'email_on_retry': False
 }
 
 
 if os.environ.get('ENX_PRODUCTION', '1') == '1':
-    dag = DAG(DAG_NAME, catchup=False, default_args=DEFAULT_ARGS)
+    dag = DAG(DAG_NAME, schedule_interval='0 3 * * *', catchup=False, default_args=DEFAULT_ARGS)
 
     dag_config = Variable.get("variables_dalidq_2.0", deserialize_json=True)
 

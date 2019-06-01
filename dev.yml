@@ -29,7 +29,7 @@ services:
             - ~/.aws:/usr/local/airflow/.aws
             - ./modules:/modules/modules
             # Comment out the line below on windows.
-             - ./init:/init
+            - ./init:/init
 
         ports:
             - "8080:8080"

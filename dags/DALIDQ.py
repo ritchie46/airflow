@@ -34,19 +34,21 @@ if os.environ.get('ENX_PRODUCTION', '1') == '1':
                     bootstrap_requirements_python_without_version=[gitlab_url]) as ss:
         ss.add_spark_job(local_file='tasks/spark/dali_preprocess_json2parquet.py',
                          key='dali_preprocess_json2parquet.py',
-                         action_on_failure='CANCEL_AND_WAIT')
+                         action_on_failure='TERMINATE_CLUSTER')
         ss.add_spark_job(local_file='tasks/spark/dim_box.py', key='dim_box.py',
                          action_on_failure='CANCEL_AND_WAIT',
                          jobargs=[dag_config['S3_URL_DIM_Boxes'], dag_config['S3_URL_pre'],
                                   dag_config['S3_URL_Meta_Boxes'], dag_config['database_SDS'],
                                   dag_config['username_SDS'], dag_config['password_SDS']])
         ss.add_spark_job(local_file='tasks/spark/dim_channels.py', key='dim_channel.py',
-                         action_on_failure='CANCEL_AND_WAIT',
+                         action_on_failure='TERMINATE_CLUSTER',
                          jobargs=[dag_config['S3_URL_DIM_Channels'], dag_config['database_SDS'],
                                   dag_config['username_SDS'], dag_config['password_SDS']])
         ss.add_spark_job(local_file='tasks/spark/pre_boxchannel.py', key='pre_boxchannel.py',
-                         action_on_failure='CANCEL_AND_WAIT',
+                         action_on_failure='TERMINATE_CLUSTER',
                          jobargs=[dag_config['S3_URL_DIM_Boxes'], dag_config['S3_URL_DIM_Channels'],
                                   dag_config['S3_URL_BoxChannel']])
         ss.add_spark_job(local_file='tasks/spark/fact_completeness.py', key='fact_completeness.py',
-                        action_on_failure='CANCEL_AND_WAIT')
+                        action_on_failure='TERMINATE_CLUSTER')
+        ss.add_spark_job(local_file='tasks/spark/fact_gaps.py', key='fact_gaps.py',
+                         action_on_failure='TERMINATE_CLUSTER')

@@ -65,16 +65,27 @@ Within your DAGs you can access (secret) variables such as connection strings an
 {
     env_variables:{
         "host":"mydatabase.net", 
-        "key":"jkadjflkadjlf"
+        "key":"my-secret"
         }
 }
 ```
 
 - Upload this JSON file to the UI of Airflow (tab Admin)
 
-- Add the following lines to your DAG (this is an example, you should modify it according to your requirements)
+Variables should preferably be acquired at runtime of the dag. This can be done through Jinja templating.
 
+```python
+t1 = BashOperator(
+    task_id='print_date',
+    bash_command='echo "secret value is "',
+    dag=dag)
 ```
+
+If you choose to access the variables at the dag creation time, this will lead to extra database queries and errors
+during development. 
+
+Don't do it like this!
+```python
 from airflow.models import Variable
 
 dag_config = Variable.get("env_variables", deserialize_json=True)
@@ -87,5 +98,21 @@ with SparkSteps(DEFAULT_ARGS, dag, instance_count=1) as ss:
 
 ```
 
+
+## Starting on server
+If you have problems and you need to restart `docker-compose` on the airflow server, set the following environment
+variables first:
+
+```text
+AIRFLOW_USERNAME
+AIRFLOW_PASSWORD
+FERNET_KEY
+POSTGRES_USER
+POSTGRES_PASSWORD
+```
+
+Once they are set. Docker-compose can be started:
+
+`docker-compose -f prod.yml up -d`
 
 

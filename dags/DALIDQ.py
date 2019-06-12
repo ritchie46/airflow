@@ -26,7 +26,7 @@ if os.environ.get('ENX_PRODUCTION', '1') == '1':
     gitlab_url = "git+https://{}:{}@{}".\
         format(dag_config['gitlab_username'], dag_config['gitlab_token'], dag_config['gitlab_host'])
 
-    with SparkSteps(DEFAULT_ARGS, dag, instance_count=20,
+    with SparkSteps(DEFAULT_ARGS, dag, instance_count=dag_config['instance_count'],
                     bootstrap_script='tasks/bootstrapping/odbc.sh',
                     subnet_id='subnet-bbc351f3',
                     bootstrap_requirements_yum=['git-core'],

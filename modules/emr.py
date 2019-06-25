@@ -37,6 +37,7 @@ class SparkSteps:
                  bootstrap_requirements_python_without_version=None,
                  bootstrap_requirements_yum=None,
                  bootstrap_script=None,
+                 tag='airflow-cluster',
                  bucket='enx-ds-airflow'):
         """
         Utility class that helps with a synchronous dag for EMR.
@@ -57,10 +58,11 @@ class SparkSteps:
         :param bootstrap_requirements_yum: (list) Containing extra system requirements. Example:
                                                 ['unixODBC-devel', 'gcc-c++']
         :param bootstrap_script: (str) Path to bash script to run before
+        :param tag: (str) Set custom tag for EMR cluster.
         :param bucket: (str) s3 bucket where the EMR tasks will be copied to. Recommended to leave default.
         """
         self.default_args = default_args
-        self.cluster_name = f"airflow-cluster-{str(datetime.now()).replace(' ', '_')}"
+        self.cluster_name = f"{tag}-{str(datetime.now()).replace(' ', '_')}"
         self.bucket = bucket
         self.instance_count = instance_count
         self.master_instance_type = master_instance_type
